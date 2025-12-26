@@ -38,6 +38,59 @@
     </p>
   </section>
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Submit Your Product</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <ul>
+        <li><a href="index.html">Submit Product</a></li>
+        <li><a href="products.html">View Products</a></li>
+        <li><a href="about.html">About</a></li>
+    </ul>
+</nav>
+  
+<div class="container">
+    <h2>Submit Your Product</h2>
+
+    <form class="product-form">
+        <label>Product Name</label>
+        <input type="text" placeholder="Enter product name" required>
+
+        <label>Price</label>
+        <input type="number" placeholder="Enter price" required>
+
+        <label>Category</label>
+        <select required>
+            <option value="">Select category</option>
+            <option>Electronics</option>
+            <option>Fashion</option>
+            <option>Food</option>
+            <option>Books</option>
+            <option>Other</option>
+        </select>
+
+        <label>Description</label>
+        <textarea rows="7" placeholder="Describe your product" required></textarea>
+
+        <label>Product Image</label>
+        <input type="file" accept="image/*">
+
+        <button type="submit">Submit Product</button>
+    </form>
+</div>
+
 </body>
 </html>
+
+
+  
+</body>
+</html>
+
 
