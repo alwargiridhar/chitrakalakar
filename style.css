@@ -31,6 +31,29 @@
 .navbar nav a:hover {
   color: #ff914d;
 }
+/* Navbar basic style */
+.navbar {
+  list-style: none;
+  display: flex;
+  background: #333;
+  padding: 0;
+  margin: 0;
+}
+
+.navbar li {
+  position: relative;
+}
+
+.navbar a {
+  display: block;
+  padding: 14px 20px;
+  color: white;
+  text-decoration: none;
+}
+
+.navbar a:hover {
+  background: #444;
+}
 /* Dropdown menu */
 .dropdown-menu {
   list-style: none;
@@ -144,5 +167,6 @@
 .container {
     margin-top: 80px;
 }
+
 
 
