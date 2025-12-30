@@ -20,15 +20,38 @@
   font-weight: bold;
   color: #5a2d82;
 }
-
+.navbar li {
+  position: relative;
+}
 .navbar nav a {
   margin-left: 30px;
   text-decoration: none;
   color: #333;
 }
-
 .navbar nav a:hover {
   color: #ff914d;
+}
+/* Dropdown menu */
+.dropdown-menu {
+  list-style: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #444;
+  padding: 0;
+  margin: 0;
+  min-width: 150px;
+  display: none;
+}
+
+/* Dropdown items */
+.dropdown-menu li a {
+  padding: 10px;
+}
+
+/* Show dropdown on hover */
+.dropdown:hover .dropdown-menu {
+  display: block;
 }
 
 /* HERO */
@@ -121,4 +144,5 @@
 .container {
     margin-top: 80px;
 }
+
 
