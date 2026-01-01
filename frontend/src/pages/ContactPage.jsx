@@ -42,21 +42,21 @@ export default function ContactPage({ user, onLogout }) {
               <CardContent className="pt-8">
                 <Mail className="h-10 w-10 text-accent mx-auto mb-4" />
                 <h3 className="font-medium mb-2">Email</h3>
-                <p className="text-sm text-muted-foreground">hello@chitrakalakar.com</p>
+                <p className="text-sm text-muted-foreground">info@chitrakalakar.com</p>
               </CardContent>
             </Card>
             <Card data-testid="contact-phone" className="text-center">
               <CardContent className="pt-8">
                 <Phone className="h-10 w-10 text-accent mx-auto mb-4" />
                 <h3 className="font-medium mb-2">Phone</h3>
-                <p className="text-sm text-muted-foreground">+91 9876543210</p>
+                <p className="text-sm text-muted-foreground">+91 9884984454</p>
               </CardContent>
             </Card>
             <Card data-testid="contact-location" className="text-center">
               <CardContent className="pt-8">
                 <MapPin className="h-10 w-10 text-accent mx-auto mb-4" />
                 <h3 className="font-medium mb-2">Location</h3>
-                <p className="text-sm text-muted-foreground">Mumbai, India</p>
+                <p className="text-sm text-muted-foreground">Chennai, India</p>
               </CardContent>
             </Card>
           </div>

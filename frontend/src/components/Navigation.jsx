@@ -1,11 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Palette } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Palette, ChevronDown } from 'lucide-react';
 
 export const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
   
   const isActive = (path) => location.pathname === path;
+  const isExhibitionActive = location.pathname === '/exhibitions' || location.pathname === '/exhibitions/archive';
   
   return (
     <header data-testid="header" className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/10">
@@ -33,15 +40,25 @@ export const Navigation = ({ user, onLogout }) => {
               Artists
             </Button>
           </Link>
-          <Link to="/exhibitions">
-            <Button 
-              data-testid="nav-exhibitions" 
-              variant="ghost" 
-              className={`rounded-full ${isActive('/exhibitions') ? 'text-accent' : ''}`}
-            >
-              Exhibitions
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                data-testid="nav-exhibitions" 
+                variant="ghost" 
+                className={`rounded-full ${isExhibitionActive ? 'text-accent' : ''}`}
+              >
+                Exhibitions <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild>
+                <Link to="/exhibitions" className="cursor-pointer">Active Exhibitions</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/exhibitions/archive" className="cursor-pointer">Archive</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link to="/contact">
             <Button 
               data-testid="nav-contact" 
