@@ -59,6 +59,7 @@ function App() {
             } 
           />
           <Route path="/exhibitions" element={<ExhibitionPage user={user} onLogout={handleLogout} />} />
+          <Route path="/exhibitions/archive" element={<ExhibitionArchivePage user={user} onLogout={handleLogout} />} />
           <Route path="/artist/:artistId" element={<ArtistProfilePage />} />
           <Route path="/payment-success" element={<PaymentSuccess user={user} />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
