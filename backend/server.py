@@ -265,14 +265,27 @@ async def create_custom_order(order: CustomOrderCreate):
     order_dict['status'] = 'pending'
     order_dict['created_at'] = datetime.now(timezone.utc).isoformat()
     
-    # Match artists by city/pincode and category
-    artist_query = {"annual_fee_paid": True, "city": order.preferred_city}
+    # Priority 1: Match artists from same city with matching skills
+    priority_query = {"annual_fee_paid": True, "city": order.preferred_city}
     if order.category:
-        artist_query["skills"] = order.category
+        priority_query["skills"] = order.category
     
-    matched_artists = await db.artist_profiles.find(artist_query, {"_id": 0, "id": 1}).to_list(20)
-    order_dict['matched_artists'] = [artist['id'] for artist in matched_artists]
-    order_dict['status'] = 'matched' if matched_artists else 'pending'
+    priority_artists = await db.artist_profiles.find(priority_query, {"_id": 0, "id": 1}).to_list(20)
+    
+    # Priority 2: If user wants, they can get all artists with matching skills (any location)
+    all_artists_query = {"annual_fee_paid": True}
+    if order.category:
+        all_artists_query["skills"] = order.category
+    
+    all_artists = await db.artist_profiles.find(all_artists_query, {"_id": 0, "id": 1}).to_list(100)
+    
+    # Store both lists: priority (same location) first, then others
+    priority_ids = [artist['id'] for artist in priority_artists]
+    other_ids = [artist['id'] for artist in all_artists if artist['id'] not in priority_ids]
+    
+    order_dict['matched_artists'] = priority_ids  # Priority artists from same location
+    order_dict['all_location_artists'] = other_ids  # Other location artists
+    order_dict['status'] = 'matched' if (priority_artists or all_artists) else 'pending'
     
     await db.custom_orders.insert_one(order_dict)
     
