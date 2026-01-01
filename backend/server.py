@@ -471,6 +471,16 @@ async def get_featured_artworks():
     ).limit(8).to_list(8)
     return [ArtworkResponse(**artwork) for artwork in artworks]
 
+@api_router.get("/artworks/all", response_model=List[ArtworkResponse])
+async def get_all_artworks_any_location(category: Optional[str] = None, limit: int = 100):
+    """Get artworks from all locations without filtering by artist location"""
+    query = {"status": "available"}
+    if category:
+        query["category"] = category
+    
+    artworks = await db.artworks.find(query, {"_id": 0}).limit(limit).to_list(limit)
+    return [ArtworkResponse(**artwork) for artwork in artworks]
+
 @api_router.get("/")
 async def root():
     return {"message": "ChitraKalakar API - Give Life To Your Imagination"}
