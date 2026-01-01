@@ -48,37 +48,6 @@ export default function UserDashboard({ user, onLogout }) {
     }
   };
 
-  const handleOrderChange = (e) => {
-    setOrderForm({ ...orderForm, [e.target.name]: e.target.value });
-  };
-
-  const handleCreateOrder = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API}/orders/custom`, {
-        ...orderForm,
-        user_id: user.id,
-        budget: parseFloat(orderForm.budget)
-      });
-      toast.success(`Order created! ${response.data.matched_artists.length} artists matched.`);
-      fetchMyOrders();
-      setOrderForm({
-        title: '',
-        description: '',
-        category: '',
-        budget: '',
-        currency: 'INR',
-        preferred_city: '',
-        preferred_pincode: ''
-      });
-    } catch (error) {
-      toast.error('Failed to create order');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleMembershipPurchase = async () => {
     try {
       const response = await axios.post(
