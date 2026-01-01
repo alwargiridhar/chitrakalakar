@@ -43,7 +43,6 @@ function App() {
           <Route path="/about" element={<AboutPage user={user} onLogout={handleLogout} />} />
           <Route path="/artists" element={<ArtistsPage user={user} onLogout={handleLogout} />} />
           <Route path="/contact" element={<ContactPage user={user} onLogout={handleLogout} />} />
-          <Route path="/custom-order" element={<CustomOrderPage user={user} onLogout={handleLogout} />} />
           <Route path="/auth" element={<AuthPage onLogin={handleLogin} />} />
           <Route 
             path="/dashboard" 
