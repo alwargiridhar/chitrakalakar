@@ -78,10 +78,10 @@ class ArtworkCreate(BaseModel):
     price: float
     currency: str = \"INR\"
     image_url: str
-    dimensions: Optional[str] = \"\"
+    dimensions: Optional[str] = ""
     
 class ArtworkResponse(BaseModel):
-    model_config = ConfigDict(extra=\"ignore\")
+    model_config = ConfigDict(extra="ignore")
     id: str
     artist_id: str
     title: str
@@ -100,12 +100,12 @@ class CustomOrderCreate(BaseModel):
     description: str
     category: str
     budget: float
-    currency: str = \"INR\"
+    currency: str = "INR"
     preferred_city: str
-    preferred_pincode: Optional[str] = \"\"
+    preferred_pincode: Optional[str] = ""
     
 class CustomOrderResponse(BaseModel):
-    model_config = ConfigDict(extra=\"ignore\")
+    model_config = ConfigDict(extra="ignore")
     id: str
     user_id: str
     title: str
