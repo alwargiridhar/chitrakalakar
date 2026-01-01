@@ -159,11 +159,11 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 # Auth Routes
-@api_router.post(\"/auth/register\", response_model=UserResponse)
+@api_router.post("/auth/register", response_model=UserResponse)
 async def register(user: UserCreate):
-    existing_user = await db.users.find_one({\"email\": user.email}, {\"_id\": 0})
+    existing_user = await db.users.find_one({"email": user.email}, {"_id": 0})
     if existing_user:
-        raise HTTPException(status_code=400, detail=\"Email already registered\")
+        raise HTTPException(status_code=400, detail="Email already registered")
     
     user_dict = user.model_dump()
     user_dict['password'] = hash_password(user_dict['password'])
