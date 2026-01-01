@@ -148,7 +148,7 @@ class CheckoutRequest(BaseModel):
     user_id: str
     order_type: str  # 'membership', 'artist_annual', 'exhibition', 'artwork_purchase', 'custom_order'
     amount: float
-    currency: str = \"INR\"
+    currency: str = "INR"
     metadata: Dict[str, str] = {}
 
 # Helper Functions
