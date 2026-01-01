@@ -7,6 +7,7 @@ import AuthPage from '@/pages/AuthPage';
 import UserDashboard from '@/pages/UserDashboard';
 import ArtistDashboard from '@/pages/ArtistDashboard';
 import ExhibitionPage from '@/pages/ExhibitionPage';
+import ExhibitionArchivePage from '@/pages/ExhibitionArchivePage';
 import ArtistProfilePage from '@/pages/ArtistProfilePage';
 import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentCancel from '@/pages/PaymentCancel';
