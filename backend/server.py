@@ -129,7 +129,7 @@ class ExhibitionCreate(BaseModel):
     duration_days: int = 3  # Base duration
     
 class ExhibitionResponse(BaseModel):
-    model_config = ConfigDict(extra=\"ignore\")
+    model_config = ConfigDict(extra="ignore")
     id: str
     artist_id: str
     title: str
