@@ -313,10 +313,37 @@ async def select_artist_for_order(order_id: str, artist_id: str):
     
     await db.custom_orders.update_one(
         {"id": order_id},
-        {"$set": {"selected_artist_id": artist_id, "status": "accepted", "estimated_days": 14}}
+        {"$set": {"selected_artist_id": artist_id, "status": "sent_to_artist", "estimated_days": 14}}
     )
     
-    return {"message": "Artist selected successfully"}
+    return {"message": "Order sent to artist for acceptance"}
+
+@api_router.patch("/orders/custom/{order_id}/artist-response")
+async def artist_accept_reject_order(order_id: str, accept: bool, estimated_days: Optional[int] = 14):
+    order = await db.custom_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if accept:
+        await db.custom_orders.update_one(
+            {"id": order_id},
+            {"$set": {
+                "artist_accepted": True,
+                "status": "accepted",
+                "estimated_days": estimated_days
+            }}
+        )
+        return {"message": "Order accepted successfully"}
+    else:
+        await db.custom_orders.update_one(
+            {"id": order_id},
+            {"$set": {
+                "artist_accepted": False,
+                "status": "rejected",
+                "selected_artist_id": None
+            }}
+        )
+        return {"message": "Order rejected"}
 
 # Exhibition Routes
 @api_router.post("/exhibitions", response_model=ExhibitionResponse)
