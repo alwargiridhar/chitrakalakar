@@ -19,6 +19,8 @@ const CURRENCIES = ['INR', 'USD', 'EUR'];
 
 export default function UserDashboard({ user, onLogout }) {
   const [artworks, setArtworks] = useState([]);
+  const [allLocationArtworks, setAllLocationArtworks] = useState([]);
+  const [showAllLocations, setShowAllLocations] = useState(false);
   const [myOrders, setMyOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [orderForm, setOrderForm] = useState({
