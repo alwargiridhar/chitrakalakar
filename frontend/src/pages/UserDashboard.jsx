@@ -259,9 +259,21 @@ export default function UserDashboard({ user, onLogout }) {
 
         {/* Featured Artworks */}
         <div>
-          <h2 className="text-3xl font-medium mb-6">Featured Artworks</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-medium">
+              {showAllLocations ? 'All Artworks (All Locations)' : 'Featured Artworks'}
+            </h2>
+            <Button 
+              data-testid="toggle-location-btn"
+              onClick={() => setShowAllLocations(!showAllLocations)}
+              variant="outline"
+              className="rounded-full"
+            >
+              {showAllLocations ? 'Show Featured Only' : 'Browse All Locations'}
+            </Button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {artworks.map((artwork) => (
+            {(showAllLocations ? allLocationArtworks : artworks).map((artwork) => (
               <Card key={artwork.id} data-testid={`artwork-${artwork.id}`} className="group overflow-hidden">
                 <img src={artwork.image_url} alt={artwork.title} className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-700" />
                 <CardHeader>
