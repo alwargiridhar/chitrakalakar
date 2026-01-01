@@ -10,6 +10,9 @@ import ExhibitionPage from '@/pages/ExhibitionPage';
 import ArtistProfilePage from '@/pages/ArtistProfilePage';
 import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentCancel from '@/pages/PaymentCancel';
+import AboutPage from '@/pages/AboutPage';
+import ArtistsPage from '@/pages/ArtistsPage';
+import ContactPage from '@/pages/ContactPage';
 
 function App() {
   const [user, setUser] = useState(null);
