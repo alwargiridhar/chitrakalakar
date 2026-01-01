@@ -188,6 +188,39 @@ export default function AboutPage({ user, onLogout }) {
           </section>
         )}
 
+        {/* Founder Section */}
+        <section className="max-w-7xl mx-auto px-6 md:px-12 py-24 bg-background">
+          <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-center mb-16">Meet Our Founder</h2>
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1">
+                  <img 
+                    src="https://customer-assets.emergentagent.com/job_29756c73-d1a5-471d-b945-6bff0c3a86f5/artifacts/to7uqpfr_New%20Project%20%2814%29.jpg"
+                    alt="Giridhar Alwar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="lg:col-span-2 p-8 lg:p-12">
+                  <h3 className="text-3xl font-medium mb-2">Giridhar Alwar</h3>
+                  <p className="text-lg text-accent mb-6">Founder & Chief Chitrakalakar</p>
+                  <div className="space-y-4 text-muted-foreground leading-relaxed">
+                    <p>
+                      Giridhar Alwar is an Indian visual artist, author, and cultural entrepreneur, and the founder of Chitrakalakar. His creative journey began with writing and visual storytelling, where he explored themes of culture, identity, and everyday Indian life.
+                    </p>
+                    <p>
+                      As an author and artist, Giridhar's work reflects a deep engagement with Indian aesthetics and narrative traditions, evolving from personal creative practice into building platforms that support other artists. His early initiatives under RamRath Artworks laid the foundation for a broader vision—creating sustainable, artist-centric ecosystems.
+                    </p>
+                    <p>
+                      Through Chitrakalakar, he brings together his experience as an author, visual artist, and entrepreneur to preserve artistic voices, empower creators, and connect traditional and contemporary art with modern audiences.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* How It Works */}
         <section className="max-w-7xl mx-auto px-6 md:px-12 py-24">
           <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-center mb-16">How It Works</h2>
