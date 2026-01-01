@@ -214,7 +214,14 @@ async def get_artist_profile(user_id: str):
 
 @api_router.get("/artists", response_model=List[ArtistProfileResponse])
 async def get_all_artists(city: Optional[str] = None, skill: Optional[str] = None):
-    query = {"annual_fee_paid": True}\n    if city:\n        query["city"] = city\n    if skill:\n        query["skills"] = skill\n    \n    artists = await db.artist_profiles.find(query, {"_id": 0}).to_list(100)\n    return [ArtistProfileResponse(**artist) for artist in artists]
+    query = {"annual_fee_paid": True}
+    if city:
+        query["city"] = city
+    if skill:
+        query["skills"] = skill
+    
+    artists = await db.artist_profiles.find(query, {"_id": 0}).to_list(100)
+    return [ArtistProfileResponse(**artist) for artist in artists]
 
 # Artwork Routes
 @api_router.post("/artworks", response_model=ArtworkResponse)
@@ -260,7 +267,16 @@ async def create_custom_order(order: CustomOrderCreate):
     
     # Match artists by city/pincode and category
     artist_query = {"annual_fee_paid": True, "city": order.preferred_city}
-    if order.category:\n        artist_query["skills"] = order.category\n    \n    matched_artists = await db.artist_profiles.find(artist_query, {"_id": 0, "id": 1}).to_list(20)\n    order_dict['matched_artists'] = [artist['id'] for artist in matched_artists]\n    order_dict['status'] = 'matched' if matched_artists else 'pending'\n    \n    await db.custom_orders.insert_one(order_dict)\n    \n    return CustomOrderResponse(**order_dict)
+    if order.category:
+        artist_query["skills"] = order.category
+    
+    matched_artists = await db.artist_profiles.find(artist_query, {"_id": 0, "id": 1}).to_list(20)
+    order_dict['matched_artists'] = [artist['id'] for artist in matched_artists]
+    order_dict['status'] = 'matched' if matched_artists else 'pending'
+    
+    await db.custom_orders.insert_one(order_dict)
+    
+    return CustomOrderResponse(**order_dict)
 
 @api_router.get("/orders/custom/{order_id}", response_model=CustomOrderResponse)
 async def get_custom_order(order_id: str):
@@ -280,7 +296,12 @@ async def select_artist_for_order(order_id: str, artist_id: str):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    await db.custom_orders.update_one(\n        {"id": order_id},\n        {"$set": {"selected_artist_id": artist_id, "status": "accepted", "estimated_days": 14}}\n    )\n    \n    return {"message": "Artist selected successfully"}
+    await db.custom_orders.update_one(
+        {"id": order_id},
+        {"$set": {"selected_artist_id": artist_id, "status": "accepted", "estimated_days": 14}}
+    )
+    
+    return {"message": "Artist selected successfully"}
 
 # Exhibition Routes
 @api_router.post("/exhibitions", response_model=ExhibitionResponse)
@@ -289,12 +310,18 @@ async def create_exhibition(exhibition: ExhibitionCreate):
         raise HTTPException(status_code=400, detail="Maximum 10 artworks allowed for base price")
     
     # Base price: 1000 INR or 10 USD for 3 days and 10 artworks
-    base_price = 1000.0 if exhibition.duration_days <= 3 else 1000.0 * (exhibition.duration_days / 3)\n    \n    exhibition_dict = exhibition.model_dump()
+    base_price = 1000.0 if exhibition.duration_days <= 3 else 1000.0 * (exhibition.duration_days / 3)
+    
+    exhibition_dict = exhibition.model_dump()
     exhibition_dict['id'] = str(uuid.uuid4())
     exhibition_dict['status'] = 'pending_payment'
-    exhibition_dict['price_paid'] = base_price\n    exhibition_dict['currency'] = 'INR'\n    exhibition_dict['created_at'] = datetime.now(timezone.utc).isoformat()
-    \n    await db.exhibitions.insert_one(exhibition_dict)
-    \n    return ExhibitionResponse(**exhibition_dict)
+    exhibition_dict['price_paid'] = base_price
+    exhibition_dict['currency'] = 'INR'
+    exhibition_dict['created_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.exhibitions.insert_one(exhibition_dict)
+    
+    return ExhibitionResponse(**exhibition_dict)
 
 @api_router.get("/exhibitions", response_model=List[ExhibitionResponse])
 async def get_exhibitions(artist_id: Optional[str] = None, status: str = "active"):
@@ -322,30 +349,148 @@ async def activate_exhibition(exhibition_id: str):
     end_date = start_date + timedelta(days=exhibition['duration_days'])
     archive_until = end_date + timedelta(days=exhibition['duration_days'])
     
-    await db.exhibitions.update_one(\n        {"id": exhibition_id},\n        {"$set": {\n            "status": "active",\n            "start_date": start_date.isoformat(),\n            "end_date": end_date.isoformat(),\n            "archive_until": archive_until.isoformat()\n        }}\n    )\n    \n    # Update artwork status\n    await db.artworks.update_many(\n        {"id": {"$in": exhibition['artwork_ids']}},\n        {"$set": {"status": "in_exhibition"}}\n    )\n    \n    return {"message": "Exhibition activated successfully"}
+    await db.exhibitions.update_one(
+        {"id": exhibition_id},
+        {"$set": {
+            "status": "active",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "archive_until": archive_until.isoformat()
+        }}
+    )
+    
+    # Update artwork status
+    await db.artworks.update_many(
+        {"id": {"$in": exhibition['artwork_ids']}},
+        {"$set": {"status": "in_exhibition"}}
+    )
+    
+    return {"message": "Exhibition activated successfully"}
 
 # Payment Routes
-@api_router.post("/payments/checkout")\nasync def create_checkout(request: Request, checkout_req: CheckoutRequest):\n    host_url = str(request.base_url)\n    webhook_url = f"{host_url}api/webhook/stripe"\n    \n    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)\n    \n    origin_url = request.headers.get('origin', host_url.rstrip('/'))\n    success_url = f"{origin_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}"\n    cancel_url = f"{origin_url}/payment-cancel"\n    \n    checkout_request = CheckoutSessionRequest(\n        amount=checkout_req.amount,\n        currency=checkout_req.currency.lower(),\n        success_url=success_url,\n        cancel_url=cancel_url,\n        metadata={**checkout_req.metadata, "user_id": checkout_req.user_id, "order_type": checkout_req.order_type}\n    )\n    \n    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)\n    \n    # Create payment transaction record\n    transaction = {\n        "id": str(uuid.uuid4()),\n        "session_id": session.session_id,\n        "user_id": checkout_req.user_id,\n        "order_type": checkout_req.order_type,\n        "amount": checkout_req.amount,\n        "currency": checkout_req.currency,\n        "payment_status": "pending",\n        "metadata": checkout_req.metadata,\n        "created_at": datetime.now(timezone.utc).isoformat()\n    }\n    await db.payment_transactions.insert_one(transaction)\n    \n    return {"url": session.url, "session_id": session.session_id}
+@api_router.post("/payments/checkout")
+async def create_checkout(request: Request, checkout_req: CheckoutRequest):
+    host_url = str(request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    origin_url = request.headers.get('origin', host_url.rstrip('/'))
+    success_url = f"{origin_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin_url}/payment-cancel"
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=checkout_req.amount,
+        currency=checkout_req.currency.lower(),
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={**checkout_req.metadata, "user_id": checkout_req.user_id, "order_type": checkout_req.order_type}
+    )
+    
+    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create payment transaction record
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "session_id": session.session_id,
+        "user_id": checkout_req.user_id,
+        "order_type": checkout_req.order_type,
+        "amount": checkout_req.amount,
+        "currency": checkout_req.currency,
+        "payment_status": "pending",
+        "metadata": checkout_req.metadata,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payment_transactions.insert_one(transaction)
+    
+    return {"url": session.url, "session_id": session.session_id}
 
-@api_router.get("/payments/status/{session_id}")\nasync def check_payment_status(session_id: str):\n    webhook_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')}/api/webhook/stripe"\n    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)\n    \n    status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)\n    \n    # Update transaction if payment completed\n    transaction = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})\n    if transaction and status.payment_status == "paid" and transaction['payment_status'] != "paid":\n        await db.payment_transactions.update_one(\n            {"session_id": session_id},\n            {"$set": {"payment_status": "paid", "updated_at": datetime.now(timezone.utc).isoformat()}}\n        )\n        \n        # Process payment based on order type\n        order_type = transaction.get('order_type')\n        user_id = transaction.get('user_id')\n        \n        if order_type == "membership":\n            await db.users.update_one({"id": user_id}, {"$set": {"has_membership": True}})\n        elif order_type == "artist_annual":\n            await db.artist_profiles.update_one({"user_id": user_id}, {"$set": {"annual_fee_paid": True}})\n        elif order_type == "exhibition":\n            exhibition_id = transaction['metadata'].get('exhibition_id')\n            if exhibition_id:\n                await db.exhibitions.update_one({"id": exhibition_id}, {"$set": {"status": "paid"}})\n    \n    return {\n        "status": status.status,\n        "payment_status": status.payment_status,\n        "amount_total": status.amount_total,\n        "currency": status.currency\n    }
+@api_router.get("/payments/status/{session_id}")
+async def check_payment_status(session_id: str):
+    webhook_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+    
+    # Update transaction if payment completed
+    transaction = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if transaction and status.payment_status == "paid" and transaction['payment_status'] != "paid":
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {"payment_status": "paid", "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Process payment based on order type
+        order_type = transaction.get('order_type')
+        user_id = transaction.get('user_id')
+        
+        if order_type == "membership":
+            await db.users.update_one({"id": user_id}, {"$set": {"has_membership": True}})
+        elif order_type == "artist_annual":
+            await db.artist_profiles.update_one({"user_id": user_id}, {"$set": {"annual_fee_paid": True}})
+        elif order_type == "exhibition":
+            exhibition_id = transaction['metadata'].get('exhibition_id')
+            if exhibition_id:
+                await db.exhibitions.update_one({"id": exhibition_id}, {"$set": {"status": "paid"}})
+    
+    return {
+        "status": status.status,
+        "payment_status": status.payment_status,
+        "amount_total": status.amount_total,
+        "currency": status.currency
+    }
 
-@api_router.post("/webhook/stripe")\nasync def stripe_webhook(request: Request):\n    body = await request.body()\n    signature = request.headers.get("Stripe-Signature")\n    \n    webhook_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')}/api/webhook/stripe"\n    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)\n    \n    try:\n        webhook_response = await stripe_checkout.handle_webhook(body, signature)\n        return {"received": True}\n    except Exception as e:\n        raise HTTPException(status_code=400, detail=str(e))
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    webhook_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        return {"received": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # Featured Content Routes
 @api_router.get("/featured/artists", response_model=List[ArtistProfileResponse])
-async def get_featured_artists():\n    artists = await db.artist_profiles.find(\n        {"annual_fee_paid": True},\n        {"_id": 0}\n    ).sort("rating", -1).limit(6).to_list(6)\n    return [ArtistProfileResponse(**artist) for artist in artists]
+async def get_featured_artists():
+    artists = await db.artist_profiles.find(
+        {"annual_fee_paid": True},
+        {"_id": 0}
+    ).sort("rating", -1).limit(6).to_list(6)
+    return [ArtistProfileResponse(**artist) for artist in artists]
 
 @api_router.get("/featured/artworks", response_model=List[ArtworkResponse])
-async def get_featured_artworks():\n    artworks = await db.artworks.find(\n        {"status": "available"},\n        {"_id": 0}\n    ).limit(8).to_list(8)\n    return [ArtworkResponse(**artwork) for artwork in artworks]
+async def get_featured_artworks():
+    artworks = await db.artworks.find(
+        {"status": "available"},
+        {"_id": 0}
+    ).limit(8).to_list(8)
+    return [ArtworkResponse(**artwork) for artwork in artworks]
 
-@api_router.get("/")\nasync def root():\n    return {"message": "ChitraKalakar API - Give Life To Your Imagination"}
+@api_router.get("/")
+async def root():
+    return {"message": "ChitraKalakar API - Give Life To Your Imagination"}
 
 app.include_router(api_router)
 
-app.add_middleware(\n    CORSMiddleware,\n    allow_credentials=True,\n    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),\n    allow_methods=["*"],\n    allow_headers=["*"],\n)
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-logging.basicConfig(\n    level=logging.INFO,\n    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'\n)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
-async def shutdown_db_client():\n    client.close()
+async def shutdown_db_client():
+    client.close()
