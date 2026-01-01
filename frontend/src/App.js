@@ -14,6 +14,7 @@ import PaymentCancel from '@/pages/PaymentCancel';
 import AboutPage from '@/pages/AboutPage';
 import ArtistsPage from '@/pages/ArtistsPage';
 import ContactPage from '@/pages/ContactPage';
+import CustomOrderPage from '@/pages/CustomOrderPage';
 
 function App() {
   const [user, setUser] = useState(null);
