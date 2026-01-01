@@ -196,7 +196,14 @@ async def create_artist_profile(profile: ArtistProfileCreate):
     
     profile_dict = profile.model_dump()
     profile_dict['id'] = str(uuid.uuid4())
-    profile_dict['commission_rate'] = 0.10\n    profile_dict['total_earnings'] = 0.0\n    profile_dict['rating'] = 0.0\n    profile_dict['total_orders'] = 0\n    \n    await db.artist_profiles.insert_one(profile_dict)\n    \n    return ArtistProfileResponse(**profile_dict)
+    profile_dict['commission_rate'] = 0.10
+    profile_dict['total_earnings'] = 0.0
+    profile_dict['rating'] = 0.0
+    profile_dict['total_orders'] = 0
+    
+    await db.artist_profiles.insert_one(profile_dict)
+    
+    return ArtistProfileResponse(**profile_dict)
 
 @api_router.get("/artists/profile/{user_id}", response_model=ArtistProfileResponse)
 async def get_artist_profile(user_id: str):
