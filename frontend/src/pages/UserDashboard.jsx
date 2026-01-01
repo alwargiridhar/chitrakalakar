@@ -35,6 +35,7 @@ export default function UserDashboard({ user, onLogout }) {
 
   useEffect(() => {
     fetchArtworks();
+    fetchAllLocationArtworks();
     fetchMyOrders();
   }, []);
 
@@ -44,6 +45,15 @@ export default function UserDashboard({ user, onLogout }) {
       setArtworks(response.data);
     } catch (error) {
       console.error('Error fetching artworks:', error);
+    }
+  };
+
+  const fetchAllLocationArtworks = async () => {
+    try {
+      const response = await axios.get(`${API}/artworks/all`);
+      setAllLocationArtworks(response.data);
+    } catch (error) {
+      console.error('Error fetching all artworks:', error);
     }
   };
 
