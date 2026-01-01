@@ -415,7 +415,7 @@ export default function ArtistDashboard({ user, onLogout }) {
             <DialogTrigger asChild>
               <Card data-testid="create-exhibition-card" className="cursor-pointer hover:border-accent/50 transition-colors" disabled={!profile.annual_fee_paid}>
                 <CardContent className="flex flex-col items-center justify-center p-12">
-                  <Gallery className="h-16 w-16 text-accent mb-4" />
+                  <Image className="h-16 w-16 text-accent mb-4" />
                   <h3 className="text-xl font-medium">Create Exhibition</h3>
                 </CardContent>
               </Card>
