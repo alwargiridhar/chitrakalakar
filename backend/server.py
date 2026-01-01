@@ -38,7 +38,7 @@ class UserLogin(BaseModel):
     password: str
     
 class UserResponse(BaseModel):
-    model_config = ConfigDict(extra=\"ignore\")
+    model_config = ConfigDict(extra="ignore")
     id: str
     email: str
     name: str
@@ -48,7 +48,7 @@ class UserResponse(BaseModel):
 
 class ArtistProfileCreate(BaseModel):
     user_id: str
-    bio: Optional[str] = \"\"
+    bio: Optional[str] = ""
     skills: List[str] = []  # ['Acrylic Colors', 'Watercolors', 'Pencil Work', etc.]
     city: str
     pincode: str
@@ -56,7 +56,7 @@ class ArtistProfileCreate(BaseModel):
     annual_fee_paid: bool = False
     
 class ArtistProfileResponse(BaseModel):
-    model_config = ConfigDict(extra=\"ignore\")
+    model_config = ConfigDict(extra="ignore")
     id: str
     user_id: str
     bio: str
