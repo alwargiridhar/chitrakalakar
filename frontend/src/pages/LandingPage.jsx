@@ -1,33 +1,12 @@
 import { Link } from 'react-router-dom';
+import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Palette, Users, Award } from 'lucide-react';
 
 export default function LandingPage({ user, onLogout }) {
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header data-testid="header" className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/10">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
-          <div data-testid="logo" className="flex items-center space-x-2">
-            <Palette className="h-8 w-8 text-accent" />
-            <h1 className="text-2xl font-medium">ChitraKalakar</h1>
-          </div>
-          <nav className="flex items-center space-x-6">
-            {user ? (
-              <>
-                <Link to="/dashboard">
-                  <Button data-testid="dashboard-btn" variant="ghost" className="rounded-full">Dashboard</Button>
-                </Link>
-                <Button data-testid="logout-btn" onClick={onLogout} variant="ghost" className="rounded-full">Logout</Button>
-              </>
-            ) : (
-              <Link to="/auth">
-                <Button data-testid="signin-btn" className="rounded-full px-8 py-6">Sign In</Button>
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
+      <Navigation user={user} onLogout={onLogout} />
 
       {/* Hero Section */}
       <section data-testid="hero-section" className="pt-32 pb-24 md:pt-40 md:pb-32">
