@@ -120,7 +120,6 @@ export default function ContactPage({ user, onLogout }) {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="bg-secondary/30 py-12">
         <div className="max-w-7xl mx-auto px-6 md:px-12 text-center">
           <p className="text-sm text-muted-foreground">
