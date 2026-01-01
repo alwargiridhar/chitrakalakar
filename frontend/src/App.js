@@ -39,6 +39,9 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage user={user} onLogout={handleLogout} />} />
+          <Route path="/about" element={<AboutPage user={user} onLogout={handleLogout} />} />
+          <Route path="/artists" element={<ArtistsPage user={user} onLogout={handleLogout} />} />
+          <Route path="/contact" element={<ContactPage user={user} onLogout={handleLogout} />} />
           <Route path="/auth" element={<AuthPage onLogin={handleLogin} />} />
           <Route 
             path="/dashboard" 
@@ -54,7 +57,7 @@ function App() {
               )
             } 
           />
-          <Route path="/exhibitions" element={<ExhibitionPage user={user} />} />
+          <Route path="/exhibitions" element={<ExhibitionPage user={user} onLogout={handleLogout} />} />
           <Route path="/artist/:artistId" element={<ArtistProfilePage />} />
           <Route path="/payment-success" element={<PaymentSuccess user={user} />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
