@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Navigation } from '@/components/Navigation';
 import axios from 'axios';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Palette } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-export default function ExhibitionPage({ user }) {
+export default function ExhibitionPage({ user, onLogout }) {
   const [exhibitions, setExhibitions] = useState([]);
   const [exhibitionArtworks, setExhibitionArtworks] = useState({});
 
@@ -45,19 +43,7 @@ export default function ExhibitionPage({ user }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/10">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
-            <Palette className="h-8 w-8 text-accent" />
-            <h1 className="text-2xl font-medium">ChitraKalakar</h1>
-          </Link>
-          {user && (
-            <Link to="/dashboard">
-              <Button data-testid="dashboard-btn" variant="ghost" className="rounded-full">Dashboard</Button>
-            </Link>
-          )}
-        </div>
-      </header>
+      <Navigation user={user} onLogout={onLogout} />
 
       <div className="pt-32 pb-24">
         {/* Dark mode exhibition view */}
