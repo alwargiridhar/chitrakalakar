@@ -76,7 +76,7 @@ class ArtworkCreate(BaseModel):
     description: str
     category: str
     price: float
-    currency: str = \"INR\"
+    currency: str = "INR"
     image_url: str
     dimensions: Optional[str] = ""
     
