@@ -115,9 +115,11 @@ class CustomOrderResponse(BaseModel):
     currency: str
     preferred_city: str
     preferred_pincode: str
-    matched_artists: List[str] = []
+    matched_artists: List[str] = []  # Priority: same location artists
+    all_location_artists: List[str] = []  # Other location artists
     selected_artist_id: Optional[str] = None
-    status: str  # 'pending', 'matched', 'accepted', 'in_progress', 'completed'
+    artist_accepted: bool = False
+    status: str  # 'pending', 'matched', 'sent_to_artist', 'accepted', 'rejected', 'in_progress', 'completed'
     estimated_days: Optional[int] = None
     created_at: str
 
