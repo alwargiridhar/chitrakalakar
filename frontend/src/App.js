@@ -1666,40 +1666,22 @@ function ArtistsPage() {
 }
 
 function ExhibitionsPage() {
-  const [exhibitions, setExhibitions] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    publicAPI.getExhibitions()
-      .then(data => setExhibitions(data.exhibitions || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold text-gray-900 mb-8">Virtual Exhibitions</h1>
-      {loading ? (
-        <p>Loading...</p>
-      ) : exhibitions.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <p className="text-gray-500">No exhibitions available yet.</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="text-center py-20">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">Virtual Exhibitions</h1>
+        <p className="text-lg text-gray-600 mb-8">Explore and participate in curated art exhibitions</p>
+        <div className="bg-gray-100 rounded-lg p-8 text-gray-600 max-w-2xl mx-auto">
+          <p className="mb-4 font-semibold">This page is coming soon with:</p>
+          <ul className="text-left space-y-2 inline-block">
+            <li>• Active exhibitions by date</li>
+            <li>• Featured artworks in exhibitions</li>
+            <li>• Exhibition booking and management</li>
+            <li>• Archive of past exhibitions</li>
+            <li>• Simulation section for artists</li>
+          </ul>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {exhibitions.map(exhibition => (
-            <div key={exhibition.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="h-40 bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center">
-                <span className="text-4xl opacity-50">🎨</span>
-              </div>
-              <div className="p-4">
-                <h3 className="font-bold text-gray-900">{exhibition.name}</h3>
-                <p className="text-sm text-gray-500">by {exhibition.artist_name}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
