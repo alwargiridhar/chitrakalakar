@@ -772,17 +772,25 @@ function SignupPage() {
 
               {formData.role === 'artist' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Art Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Select category</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Art Categories (select multiple)</label>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3">
                     {ART_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <label key={cat} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={formData.categories.includes(cat)}
+                          onChange={() => handleCategoryToggle(cat)}
+                          className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-sm text-gray-700">{cat}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
+                  {formData.categories.length > 0 && (
+                    <p className="text-xs text-orange-500 mt-1">
+                      Selected: {formData.categories.join(', ')}
+                    </p>
+                  )}
                 </div>
               )}
 
