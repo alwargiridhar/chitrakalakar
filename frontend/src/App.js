@@ -1498,6 +1498,11 @@ function ArtistDashboard() {
   const [loading, setLoading] = useState(true);
   const [showAddArtwork, setShowAddArtwork] = useState(false);
   const [newArtwork, setNewArtwork] = useState({ title: '', category: '', price: '', image: '', description: '' });
+  
+  // Profile editing
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', bio: '', location: '', categories: [], avatar: '' });
+  const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -1513,6 +1518,14 @@ function ArtistDashboard() {
       return;
     }
     fetchData();
+    // Initialize profile form
+    setProfileForm({
+      name: user?.name || '',
+      bio: user?.bio || '',
+      location: user?.location || '',
+      categories: user?.categories || [user?.category].filter(Boolean),
+      avatar: user?.avatar || ''
+    });
   }, [user, navigate]);
 
   const fetchData = async () => {
@@ -1553,6 +1566,33 @@ function ArtistDashboard() {
       fetchData();
     } catch (error) {
       console.error('Error deleting artwork:', error);
+    }
+  };
+
+  const handleProfileCategoryToggle = (category) => {
+    setProfileForm(prev => ({
+      ...prev,
+      categories: prev.categories.includes(category)
+        ? prev.categories.filter(c => c !== category)
+        : [...prev.categories, category]
+    }));
+  };
+
+  const handleSaveProfile = async () => {
+    setProfileSaving(true);
+    try {
+      await authAPI.updateProfile(profileForm);
+      // Update local storage
+      const storedUser = JSON.parse(localStorage.getItem('chitrakalakar_user') || '{}');
+      const updatedUser = { ...storedUser, ...profileForm };
+      localStorage.setItem('chitrakalakar_user', JSON.stringify(updatedUser));
+      setShowEditProfile(false);
+      window.location.reload(); // Refresh to update auth context
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Failed to save profile');
+    } finally {
+      setProfileSaving(false);
     }
   };
 
