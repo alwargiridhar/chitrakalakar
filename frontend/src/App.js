@@ -2378,6 +2378,7 @@ function App() {
           <Route path="/about" element={<Layout><AboutPage /></Layout>} />
           <Route path="/artists" element={<Layout><ArtistsPage /></Layout>} />
           <Route path="/exhibitions" element={<Layout><ExhibitionsPage /></Layout>} />
+          <Route path="/exhibitions/archived" element={<Layout><ArchivedExhibitionsPage /></Layout>} />
           <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
           <Route path="/faq" element={<Layout><FAQPage /></Layout>} />
           <Route path="/privacy" element={<Layout><PrivacyPage /></Layout>} />
