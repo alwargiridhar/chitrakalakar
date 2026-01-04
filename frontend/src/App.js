@@ -628,7 +628,7 @@ function LoginPage() {
 // ============ SIGNUP PAGE ============
 function SignupPage() {
   const [step, setStep] = useState('role');
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user', category: '', location: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user', categories: [], location: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -643,6 +643,15 @@ function SignupPage() {
   const handleRoleSelect = (role) => {
     setFormData({ ...formData, role });
     setStep('details');
+  };
+
+  const handleCategoryToggle = (category) => {
+    setFormData(prev => ({
+      ...prev,
+      categories: prev.categories.includes(category)
+        ? prev.categories.filter(c => c !== category)
+        : [...prev.categories, category]
+    }));
   };
 
   const handleSubmit = async (e) => {
