@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { publicAPI, adminAPI, artistAPI } from './services/api';
+import { publicAPI, adminAPI, artistAPI, authAPI } from './services/api';
 import { BRAND_NAME, BRAND_TAGLINE, ART_CATEGORIES, NAVIGATION_LINKS } from './utils/branding';
 import './App.css';
 
 // ============ NAVBAR COMPONENT ============
 function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showExhibitionDropdown, setShowExhibitionDropdown] = useState(false);
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const dropdownRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -17,10 +19,20 @@ function NavBar() {
     navigate('/');
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowExhibitionDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const navLinks = [
     { label: 'About', href: '/about' },
     { label: 'Artists', href: '/artists' },
-    { label: 'Exhibitions', href: '/exhibitions' },
     { label: 'Contact', href: '/contact' },
   ];
 
@@ -44,6 +56,42 @@ function NavBar() {
                 {link.label}
               </Link>
             ))}
+            
+            {/* Exhibitions Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onMouseEnter={() => setShowExhibitionDropdown(true)}
+                onClick={() => setShowExhibitionDropdown(!showExhibitionDropdown)}
+                className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors flex items-center gap-1"
+              >
+                Exhibitions
+                <svg className={`w-4 h-4 transition-transform ${showExhibitionDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showExhibitionDropdown && (
+                <div 
+                  className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+                  onMouseLeave={() => setShowExhibitionDropdown(false)}
+                >
+                  <Link
+                    to="/exhibitions"
+                    onClick={() => setShowExhibitionDropdown(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-500"
+                  >
+                    🎨 Active Exhibitions
+                  </Link>
+                  <Link
+                    to="/exhibitions/archived"
+                    onClick={() => setShowExhibitionDropdown(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-500"
+                  >
+                    📁 Archived Exhibitions
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -87,6 +135,12 @@ function NavBar() {
                 {link.label}
               </Link>
             ))}
+            <Link to="/exhibitions" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+              🎨 Active Exhibitions
+            </Link>
+            <Link to="/exhibitions/archived" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+              📁 Archived Exhibitions
+            </Link>
             <div className="pt-2 space-y-2 border-t border-gray-200">
               {isAuthenticated ? (
                 <>
