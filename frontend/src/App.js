@@ -836,7 +836,16 @@ function AdminDashboard() {
   const [pendingArtworks, setPendingArtworks] = useState([]);
   const [pendingExhibitions, setPendingExhibitions] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [approvedArtists, setApprovedArtists] = useState([]);
+  const [featuredArtists, setFeaturedArtists] = useState({ contemporary: [], registered: [] });
   const [loading, setLoading] = useState(true);
+  
+  // Contemporary Artist Form
+  const [showAddContemporary, setShowAddContemporary] = useState(false);
+  const [contemporaryForm, setContemporaryForm] = useState({
+    name: '', bio: '', avatar: '', categories: [], location: '', artworks: []
+  });
+  const [newArtworkForm, setNewArtworkForm] = useState({ title: '', image: '', category: '', price: '', description: '' });
 
   useEffect(() => {
     if (!isAdmin) {
@@ -848,18 +857,22 @@ function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [dashboard, artists, artworks, exhibitions, users] = await Promise.all([
+      const [dashboard, artists, artworks, exhibitions, users, approved, featured] = await Promise.all([
         adminAPI.getDashboard(),
         adminAPI.getPendingArtists(),
         adminAPI.getPendingArtworks(),
         adminAPI.getPendingExhibitions(),
         adminAPI.getAllUsers(),
+        adminAPI.getApprovedArtists().catch(() => ({ artists: [] })),
+        adminAPI.getFeaturedArtists().catch(() => ({ contemporary: [], registered: [] })),
       ]);
       setDashboardData(dashboard);
       setPendingArtists(artists.artists || []);
       setPendingArtworks(artworks.artworks || []);
       setPendingExhibitions(exhibitions.exhibitions || []);
       setAllUsers(users.users || []);
+      setApprovedArtists(approved.artists || []);
+      setFeaturedArtists(featured);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -870,7 +883,6 @@ function AdminDashboard() {
   const handleApproveArtist = async (artistId, approved) => {
     try {
       await adminAPI.approveArtist(artistId, approved);
-      setPendingArtists(pendingArtists.filter(a => a.id !== artistId));
       fetchData();
     } catch (error) {
       console.error('Error approving artist:', error);
@@ -880,7 +892,6 @@ function AdminDashboard() {
   const handleApproveArtwork = async (artworkId, approved) => {
     try {
       await adminAPI.approveArtwork(artworkId, approved);
-      setPendingArtworks(pendingArtworks.filter(a => a.id !== artworkId));
       fetchData();
     } catch (error) {
       console.error('Error approving artwork:', error);
@@ -890,7 +901,6 @@ function AdminDashboard() {
   const handleApproveExhibition = async (exhibitionId, approved) => {
     try {
       await adminAPI.approveExhibition(exhibitionId, approved);
-      setPendingExhibitions(pendingExhibitions.filter(e => e.id !== exhibitionId));
       fetchData();
     } catch (error) {
       console.error('Error approving exhibition:', error);
@@ -906,15 +916,81 @@ function AdminDashboard() {
     }
   };
 
+  const handleFeatureRegisteredArtist = async (artistId, featured) => {
+    try {
+      await adminAPI.featureRegisteredArtist(artistId, featured);
+      fetchData();
+    } catch (error) {
+      console.error('Error featuring artist:', error);
+    }
+  };
+
+  const handleAddArtworkToContemporary = () => {
+    if (contemporaryForm.artworks.length >= 10) {
+      alert('Maximum 10 artworks allowed');
+      return;
+    }
+    if (!newArtworkForm.title || !newArtworkForm.image) return;
+    
+    setContemporaryForm(prev => ({
+      ...prev,
+      artworks: [...prev.artworks, { ...newArtworkForm, price: parseFloat(newArtworkForm.price) || 0 }]
+    }));
+    setNewArtworkForm({ title: '', image: '', category: '', price: '', description: '' });
+  };
+
+  const handleRemoveArtworkFromContemporary = (index) => {
+    setContemporaryForm(prev => ({
+      ...prev,
+      artworks: prev.artworks.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCreateContemporaryArtist = async () => {
+    try {
+      if (!contemporaryForm.name || !contemporaryForm.bio || !contemporaryForm.avatar) {
+        alert('Please fill in name, bio, and picture URL');
+        return;
+      }
+      await adminAPI.createFeaturedArtist(contemporaryForm);
+      setShowAddContemporary(false);
+      setContemporaryForm({ name: '', bio: '', avatar: '', categories: [], location: '', artworks: [] });
+      fetchData();
+    } catch (error) {
+      console.error('Error creating featured artist:', error);
+      alert(error.message);
+    }
+  };
+
+  const handleDeleteContemporaryArtist = async (artistId) => {
+    if (!window.confirm('Are you sure you want to delete this featured artist?')) return;
+    try {
+      await adminAPI.deleteFeaturedArtist(artistId);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting artist:', error);
+    }
+  };
+
+  const handleCategoryToggle = (category) => {
+    setContemporaryForm(prev => ({
+      ...prev,
+      categories: prev.categories.includes(category)
+        ? prev.categories.filter(c => c !== category)
+        : [...prev.categories, category]
+    }));
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'artists', label: `Artists (${pendingArtists.length})`, icon: '🎨' },
+    { id: 'artists', label: `Pending (${pendingArtists.length})`, icon: '🎨' },
     { id: 'artworks', label: `Artworks (${pendingArtworks.length})`, icon: '🖼️' },
     { id: 'exhibitions', label: `Exhibitions (${pendingExhibitions.length})`, icon: '🏛️' },
+    { id: 'feature', label: 'Feature Artists', icon: '⭐' },
     { id: 'users', label: 'All Users', icon: '👥' },
   ];
 
@@ -933,9 +1009,7 @@ function AdminDashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-                activeTab === tab.id
-                  ? 'bg-red-500 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                activeTab === tab.id ? 'bg-red-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
               <span>{tab.icon}</span>
@@ -964,8 +1038,8 @@ function AdminDashboard() {
               <p className="text-3xl font-bold text-gray-900">{dashboardData.total_users}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <p className="text-sm text-gray-500 mb-1">Total Orders</p>
-              <p className="text-3xl font-bold text-green-500">{dashboardData.total_orders}</p>
+              <p className="text-sm text-gray-500 mb-1">Featured Artists</p>
+              <p className="text-3xl font-bold text-yellow-500">{dashboardData.featured_artists || 0}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <p className="text-sm text-gray-500 mb-1">Platform Revenue</p>
@@ -990,21 +1064,13 @@ function AdminDashboard() {
                       <div>
                         <h3 className="font-semibold text-gray-900">{artist.name}</h3>
                         <p className="text-sm text-gray-500">{artist.email}</p>
-                        <p className="text-sm text-orange-500">{artist.category || 'No category'} • {artist.location || 'No location'}</p>
+                        <p className="text-sm text-orange-500">
+                          {(artist.categories || [artist.category]).filter(Boolean).join(', ') || 'No category'} • {artist.location || 'No location'}
+                        </p>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApproveArtist(artist.id, true)}
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleApproveArtist(artist.id, false)}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                        >
-                          Reject
-                        </button>
+                        <button onClick={() => handleApproveArtist(artist.id, true)} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Approve</button>
+                        <button onClick={() => handleApproveArtist(artist.id, false)} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Reject</button>
                       </div>
                     </div>
                   ))}
@@ -1039,18 +1105,8 @@ function AdminDashboard() {
                         <p className="text-sm text-gray-500">{artwork.artist_name}</p>
                         <p className="text-sm text-orange-500">₹{artwork.price?.toLocaleString()}</p>
                         <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => handleApproveArtwork(artwork.id, true)}
-                            className="flex-1 px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleApproveArtwork(artwork.id, false)}
-                            className="flex-1 px-3 py-1.5 bg-red-500 text-white rounded text-sm hover:bg-red-600"
-                          >
-                            Reject
-                          </button>
+                          <button onClick={() => handleApproveArtwork(artwork.id, true)} className="flex-1 px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600">Approve</button>
+                          <button onClick={() => handleApproveArtwork(artwork.id, false)} className="flex-1 px-3 py-1.5 bg-red-500 text-white rounded text-sm hover:bg-red-600">Reject</button>
                         </div>
                       </div>
                     </div>
@@ -1080,23 +1136,114 @@ function AdminDashboard() {
                         <p className="text-sm text-orange-500">{exhibition.start_date} - {exhibition.end_date}</p>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApproveExhibition(exhibition.id, true)}
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleApproveExhibition(exhibition.id, false)}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                        >
-                          Reject
-                        </button>
+                        <button onClick={() => handleApproveExhibition(exhibition.id, true)} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Approve</button>
+                        <button onClick={() => handleApproveExhibition(exhibition.id, false)} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Reject</button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Feature Artists Tab */}
+        {activeTab === 'feature' && (
+          <div className="space-y-8">
+            {/* Add Contemporary Artist Section */}
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Feature Contemporary Artist</h2>
+                  <p className="text-sm text-gray-500">Add external artists with bio, picture, and artworks</p>
+                </div>
+                <button
+                  onClick={() => setShowAddContemporary(true)}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                >
+                  + Add Contemporary Artist
+                </button>
+              </div>
+              
+              {/* Contemporary Artists List */}
+              <div className="p-6">
+                {featuredArtists.contemporary?.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No contemporary artists featured yet</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {featuredArtists.contemporary?.map((artist) => (
+                      <div key={artist.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start gap-4">
+                          <img src={artist.avatar} alt={artist.name} className="w-16 h-16 rounded-full object-cover" />
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{artist.name}</h3>
+                            <p className="text-sm text-orange-500">{(artist.categories || []).join(', ')}</p>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{artist.bio?.substring(0, 100)}...</p>
+                            <p className="text-xs text-gray-400 mt-1">{artist.artworks?.length || 0} artworks</p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteContemporaryArtist(artist.id)}
+                            className="px-3 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Feature Registered Artists Section */}
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900">Feature Registered Artists</h2>
+                <p className="text-sm text-gray-500">Select approved artists to feature on homepage</p>
+              </div>
+              <div className="p-6">
+                {approvedArtists.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No approved artists available</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {approvedArtists.map((artist) => (
+                      <div key={artist.id} className={`border rounded-lg p-4 ${artist.is_featured ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'}`}>
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                            {artist.avatar ? (
+                              <img src={artist.avatar} alt={artist.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xl">👤</span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{artist.name}</h3>
+                            <p className="text-sm text-orange-500">
+                              {(artist.categories || [artist.category]).filter(Boolean).join(', ')}
+                            </p>
+                            <p className="text-xs text-gray-500">{artist.artwork_count || 0} artworks</p>
+                            {artist.is_featured && (
+                              <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-400 text-yellow-900 text-xs rounded-full">⭐ Featured</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => handleFeatureRegisteredArtist(artist.id, !artist.is_featured)}
+                            className={`flex-1 px-3 py-1.5 rounded text-sm font-medium ${
+                              artist.is_featured
+                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                            }`}
+                          >
+                            {artist.is_featured ? 'Unfeature' : '⭐ Feature'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1138,12 +1285,8 @@ function AdminDashboard() {
                         }`}>
                           {u.is_active !== false ? 'Active' : 'Inactive'}
                         </span>
-                        {u.role === 'artist' && (
-                          <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                            u.is_approved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {u.is_approved ? 'Approved' : 'Pending'}
-                          </span>
+                        {u.role === 'artist' && u.is_featured && (
+                          <span className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">⭐ Featured</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -1164,6 +1307,178 @@ function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Add Contemporary Artist Modal */}
+        {showAddContemporary && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+                <h2 className="text-xl font-bold text-gray-900">Add Contemporary Artist</h2>
+                <button onClick={() => setShowAddContemporary(false)} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+              </div>
+              <div className="p-6 space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Artist Name *</label>
+                    <input
+                      type="text"
+                      value={contemporaryForm.name}
+                      onChange={(e) => setContemporaryForm({ ...contemporaryForm, name: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      placeholder="Full name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <input
+                      type="text"
+                      value={contemporaryForm.location}
+                      onChange={(e) => setContemporaryForm({ ...contemporaryForm, location: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      placeholder="City, Country"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Picture URL *</label>
+                  <input
+                    type="url"
+                    value={contemporaryForm.avatar}
+                    onChange={(e) => setContemporaryForm({ ...contemporaryForm, avatar: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    placeholder="https://..."
+                  />
+                  {contemporaryForm.avatar && (
+                    <img src={contemporaryForm.avatar} alt="Preview" className="w-20 h-20 rounded-full object-cover mt-2" />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
+                  <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                    {ART_CATEGORIES.map((cat) => (
+                      <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={contemporaryForm.categories.includes(cat)}
+                          onChange={() => handleCategoryToggle(cat)}
+                          className="w-4 h-4 text-orange-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm">{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Bio * (up to 2500 words)</label>
+                  <textarea
+                    value={contemporaryForm.bio}
+                    onChange={(e) => setContemporaryForm({ ...contemporaryForm, bio: e.target.value })}
+                    rows={6}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    placeholder="Write about the artist..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {contemporaryForm.bio.split(/\s+/).filter(Boolean).length} / 2500 words
+                  </p>
+                </div>
+
+                {/* Artworks Section */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Artworks (up to 10)</h3>
+                  
+                  {/* Add Artwork Form */}
+                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <input
+                        type="text"
+                        placeholder="Artwork title"
+                        value={newArtworkForm.title}
+                        onChange={(e) => setNewArtworkForm({ ...newArtworkForm, title: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      />
+                      <input
+                        type="url"
+                        placeholder="Image URL"
+                        value={newArtworkForm.image}
+                        onChange={(e) => setNewArtworkForm({ ...newArtworkForm, image: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      />
+                      <select
+                        value={newArtworkForm.category}
+                        onChange={(e) => setNewArtworkForm({ ...newArtworkForm, category: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="">Category</option>
+                        {ART_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Price (₹)"
+                        value={newArtworkForm.price}
+                        onChange={(e) => setNewArtworkForm({ ...newArtworkForm, price: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddArtworkToContemporary}
+                      disabled={contemporaryForm.artworks.length >= 10}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+                    >
+                      + Add Artwork
+                    </button>
+                  </div>
+
+                  {/* Artworks List */}
+                  {contemporaryForm.artworks.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {contemporaryForm.artworks.map((artwork, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-2 relative">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveArtworkFromContemporary(index)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600"
+                          >
+                            ✕
+                          </button>
+                          {artwork.image && (
+                            <img src={artwork.image} alt={artwork.title} className="w-full h-20 object-cover rounded mb-2" />
+                          )}
+                          <p className="text-sm font-medium truncate">{artwork.title}</p>
+                          <p className="text-xs text-gray-500">₹{artwork.price?.toLocaleString()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit */}
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddContemporary(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateContemporaryArtist}
+                    className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                  >
+                    Create Featured Artist
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
