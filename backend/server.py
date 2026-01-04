@@ -505,7 +505,8 @@ async def add_artwork(artwork: ArtworkBase, artist: dict = Depends(require_artis
     artwork_dict["created_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.artworks.insert_one(artwork_dict)
-    del artwork_dict["_id"] if "_id" in artwork_dict else None
+    if "_id" in artwork_dict:
+        del artwork_dict["_id"]
     
     return {"success": True, "artwork": artwork_dict, "message": "Artwork submitted for approval"}
 
