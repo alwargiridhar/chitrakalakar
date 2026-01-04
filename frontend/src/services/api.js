@@ -37,6 +37,10 @@ export const authAPI = {
     body: JSON.stringify(data),
   }),
   getMe: () => apiCall('/auth/me'),
+  updateProfile: (data) => apiCall('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
 };
 
 // Public APIs
@@ -44,6 +48,9 @@ export const publicAPI = {
   getStats: () => apiCall('/public/stats'),
   getFeaturedArtists: () => apiCall('/public/featured-artists'),
   getExhibitions: () => apiCall('/public/exhibitions'),
+  getActiveExhibitions: () => apiCall('/public/exhibitions/active'),
+  getArchivedExhibitions: () => apiCall('/public/exhibitions/archived'),
+  getFeaturedArtistDetail: (artistId) => apiCall(`/public/featured-artist/${artistId}`),
 };
 
 // Admin APIs
@@ -64,11 +71,38 @@ export const adminAPI = {
     method: 'POST',
     body: JSON.stringify({ exhibition_id: exhibitionId, approved }),
   }),
+  archiveExhibition: (exhibitionId) => apiCall(`/admin/archive-exhibition/${exhibitionId}`, {
+    method: 'POST',
+  }),
   getAllUsers: () => apiCall('/admin/all-users'),
   toggleUserStatus: (userId) => apiCall(`/admin/toggle-user-status/${userId}`, {
     method: 'POST',
   }),
   getAllOrders: () => apiCall('/admin/all-orders'),
+  
+  // Featured Artists
+  getFeaturedArtists: () => apiCall('/admin/featured-artists'),
+  getApprovedArtists: () => apiCall('/admin/approved-artists'),
+  getArtistPreview: (artistId) => apiCall(`/admin/artist-preview/${artistId}`),
+  
+  // Feature Contemporary Artist
+  createFeaturedArtist: (data) => apiCall('/admin/feature-contemporary-artist', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateFeaturedArtist: (artistId, data) => apiCall(`/admin/featured-artist/${artistId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+  deleteFeaturedArtist: (artistId) => apiCall(`/admin/featured-artist/${artistId}`, {
+    method: 'DELETE',
+  }),
+  
+  // Feature Registered Artist
+  featureRegisteredArtist: (artistId, featured) => apiCall('/admin/feature-registered-artist', {
+    method: 'POST',
+    body: JSON.stringify({ artist_id: artistId, featured }),
+  }),
 };
 
 // Artist APIs
@@ -91,6 +125,10 @@ export const artistAPI = {
     method: 'PUT',
   }),
   getExhibitions: () => apiCall('/artist/exhibitions'),
+  createExhibition: (data) => apiCall('/artist/exhibitions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 };
 
 export default apiCall;
