@@ -1650,6 +1650,7 @@ function ArtistDashboard() {
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'portfolio', label: 'Portfolio', icon: '🖼️' },
     { id: 'orders', label: 'Orders', icon: '📦' },
+    { id: 'profile', label: 'Profile', icon: '👤' },
   ];
 
   return (
