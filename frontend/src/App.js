@@ -1015,6 +1015,7 @@ function AdminDashboard() {
     { id: 'exhibitions', label: `Exhibitions (${pendingExhibitions.length})`, icon: '🏛️' },
     { id: 'feature', label: 'Feature Artists', icon: '⭐' },
     { id: 'users', label: 'All Users', icon: '👥' },
+    { id: 'subadmins', label: 'Sub-Admins', icon: '👤' },
   ];
 
   return (
