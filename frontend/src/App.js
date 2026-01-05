@@ -108,6 +108,14 @@ function NavBar() {
                   <Link to="/admin" className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600">
                     Admin Panel
                   </Link>
+                ) : user?.role === 'lead_chitrakar' ? (
+                  <Link to="/lead-chitrakar" className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600">
+                    Lead Chitrakar
+                  </Link>
+                ) : user?.role === 'kalakar' ? (
+                  <Link to="/kalakar" className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
+                    Kalakar Panel
+                  </Link>
                 ) : (
                   <Link to="/dashboard" className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600">
                     Dashboard
