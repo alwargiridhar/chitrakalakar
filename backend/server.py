@@ -1005,6 +1005,83 @@ async def create_sub_admin(request: CreateSubAdminRequest, admin: dict = Depends
         "user": sub_admin
     }
 
+@admin_router.get("/sub-admins")
+async def get_sub_admins(admin: dict = Depends(require_admin)):
+    """Get all sub-admin users"""
+    sub_admins = await db.users.find(
+        {"role": {"$in": ["lead_chitrakar", "kalakar"]}},
+        {"password": 0, "_id": 0}
+    ).to_list(100)
+    return {"sub_admins": sub_admins}
+
+# ============ LEAD CHITRAKAR ROUTES ============
+
+@admin_router.post("/lead-chitrakar/approve-artwork")
+async def lead_chitrakar_approve_artwork(
+    request: ArtworkApprovalRequest,
+    user: dict = Depends(require_lead_chitrakar)
+):
+    """Lead Chitrakar can approve artworks for general paintings/ecommerce"""
+    if request.approved:
+        result = await db.artworks.update_one(
+            {"id": request.artwork_id},
+            {"$set": {"is_approved": True, "approved_by": user["id"], "approved_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    else:
+        result = await db.artworks.delete_one({"id": request.artwork_id})
+    
+    if result.modified_count == 0 and getattr(result, 'deleted_count', 0) == 0:
+        raise HTTPException(status_code=404, detail="Artwork not found")
+    
+    return {"success": True, "message": f"Artwork {'approved' if request.approved else 'rejected'}"}
+
+# ============ KALAKAR ROUTES ============
+
+@admin_router.get("/kalakar/exhibitions-analytics")
+async def kalakar_exhibitions_analytics(user: dict = Depends(require_kalakar)):
+    """Kalakar can view exhibition analytics"""
+    total_exhibitions = await db.exhibitions.count_documents({})
+    active_exhibitions = await db.exhibitions.count_documents({"status": "active"})
+    archived_exhibitions = await db.exhibitions.count_documents({"status": "archived"})
+    
+    # Revenue from exhibitions
+    pipeline = [
+        {"$group": {"_id": None, "total": {"$sum": "$fees"}}}
+    ]
+    revenue_result = await db.exhibitions.aggregate(pipeline).to_list(1)
+    total_revenue = revenue_result[0]["total"] if revenue_result else 0
+    
+    # Voluntary platform fees
+    voluntary_pipeline = [
+        {"$group": {"_id": None, "total": {"$sum": "$voluntary_platform_fee"}}}
+    ]
+    voluntary_result = await db.exhibitions.aggregate(voluntary_pipeline).to_list(1)
+    voluntary_fees = voluntary_result[0]["total"] if voluntary_result else 0
+    
+    return {
+        "total_exhibitions": total_exhibitions,
+        "active_exhibitions": active_exhibitions,
+        "archived_exhibitions": archived_exhibitions,
+        "total_revenue": total_revenue,
+        "voluntary_platform_fees": voluntary_fees
+    }
+
+@admin_router.get("/kalakar/payment-records")
+async def kalakar_payment_records(user: dict = Depends(require_kalakar)):
+    """Kalakar can view payment records"""
+    # Get all exhibitions with payment details
+    exhibitions = await db.exhibitions.find(
+        {"is_approved": True},
+        {"_id": 0, "name": 1, "artist_id": 1, "fees": 1, "voluntary_platform_fee": 1, "exhibition_type": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Add artist names
+    for exhibition in exhibitions:
+        artist = await db.users.find_one({"id": exhibition["artist_id"]}, {"name": 1, "_id": 0})
+        exhibition["artist_name"] = artist.get("name", "Unknown") if artist else "Unknown"
+    
+    return {"payment_records": exhibitions}
+
 # ============ ARTIST ROUTES ============
 
 @artist_router.get("/dashboard")
