@@ -158,8 +158,20 @@ function NavBar() {
             <div className="pt-2 space-y-2 border-t border-gray-200">
               {isAuthenticated ? (
                 <>
-                  <Link to={isAdmin ? '/admin' : '/dashboard'} onClick={() => setIsOpen(false)} className="block w-full px-4 py-2 bg-orange-500 text-white text-center rounded-lg">
-                    {isAdmin ? 'Admin Panel' : 'Dashboard'}
+                  <Link 
+                    to={
+                      isAdmin ? '/admin' : 
+                      user?.role === 'lead_chitrakar' ? '/lead-chitrakar' :
+                      user?.role === 'kalakar' ? '/kalakar' :
+                      '/dashboard'
+                    } 
+                    onClick={() => setIsOpen(false)} 
+                    className="block w-full px-4 py-2 bg-orange-500 text-white text-center rounded-lg"
+                  >
+                    {isAdmin ? 'Admin Panel' : 
+                     user?.role === 'lead_chitrakar' ? 'Lead Chitrakar' :
+                     user?.role === 'kalakar' ? 'Kalakar Panel' :
+                     'Dashboard'}
                   </Link>
                   <button onClick={handleLogout} className="block w-full px-4 py-2 border border-red-300 text-red-600 rounded-lg">
                     Logout
