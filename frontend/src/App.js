@@ -1502,7 +1502,17 @@ function ArtistDashboard() {
   
   // Profile editing
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: '', bio: '', location: '', categories: [], avatar: '' });
+  const [profileForm, setProfileForm] = useState({ 
+    name: '', 
+    bio: '', 
+    location: '', 
+    categories: [], 
+    avatar: '',
+    phone: '',
+    teaching_rate: null,
+    teaches_online: false,
+    teaches_offline: false
+  });
   const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
