@@ -66,6 +66,8 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
         isArtist: user?.role === 'artist',
+        isLeadChitrakar: user?.role === 'lead_chitrakar',
+        isKalakar: user?.role === 'kalakar',
       }}
     >
       {children}
