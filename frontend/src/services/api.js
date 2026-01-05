@@ -51,6 +51,17 @@ export const publicAPI = {
   getActiveExhibitions: () => apiCall('/public/exhibitions/active'),
   getArchivedExhibitions: () => apiCall('/public/exhibitions/archived'),
   getFeaturedArtistDetail: (artistId) => apiCall(`/public/featured-artist/${artistId}`),
+  
+  // Art Class Enquiry
+  createArtClassEnquiry: (data) => apiCall('/public/art-class-enquiry', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getArtClassMatches: (enquiryId) => apiCall(`/public/art-class-matches/${enquiryId}`),
+  revealContact: (enquiryId, artistId) => apiCall('/public/reveal-contact', {
+    method: 'POST',
+    body: JSON.stringify({ enquiry_id: enquiryId, artist_id: artistId }),
+  }),
 };
 
 // Admin APIs
