@@ -161,6 +161,44 @@ class FeatureRegisteredArtistRequest(BaseModel):
     artist_id: str
     featured: bool
 
+# Art Class Enquiry Models
+class ArtClassEnquiry(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    user_name: str
+    user_email: str
+    user_location: str
+    art_type: str  # Category of art interested in
+    skill_level: str  # beginner, intermediate, advanced
+    duration: str  # 1 month, 3 months, 6 months, custom
+    budget_range: str  # 250-350, 350-500, 500-1000
+    class_type: str  # online, offline
+    status: str = "pending"  # pending, matched, expired
+    matched_artists: List[str] = []  # Artist IDs
+    contacts_revealed: List[str] = []  # Artist IDs whose contact was revealed
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=30))
+
+class ArtClassEnquiryCreate(BaseModel):
+    art_type: str
+    skill_level: str
+    duration: str
+    budget_range: str
+    class_type: str  # online or offline
+    user_location: Optional[str] = None
+
+class RevealContactRequest(BaseModel):
+    enquiry_id: str
+    artist_id: str
+
+# Sub-Admin User Creation
+class CreateSubAdminRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str  # lead_chitrakar or kalakar
+    location: Optional[str] = None
+
 # ============ HELPER FUNCTIONS ============
 
 def hash_password(password: str) -> str:
