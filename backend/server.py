@@ -105,8 +105,13 @@ class Exhibition(BaseModel):
     artwork_ids: List[str] = []
     status: str = "upcoming"  # upcoming, active, completed, archived
     views: int = 0
+    exhibition_type: str = "Kalakanksh"  # Kalakanksh, Kalahruday, KalaDeeksh
     fees: float = 1000
     days_paid: int = 3  # Number of days paid for
+    max_artworks: int = 10  # Base artworks included
+    additional_artworks: int = 0  # Extra artworks purchased
+    additional_artwork_fee: float = 0  # Fee for extra artworks
+    voluntary_platform_fee: float = 0  # Optional platform support fee
     is_approved: bool = False
     archived_at: Optional[str] = None  # When it was archived
     archive_expires_at: Optional[str] = None  # When archive access expires
