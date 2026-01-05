@@ -34,6 +34,7 @@ function NavBar() {
   const navLinks = [
     { label: 'About', href: '/about' },
     { label: 'Artists', href: '/artists' },
+    { label: 'Art Classes', href: '/art-classes' },
     { label: 'Contact', href: '/contact' },
   ];
 
