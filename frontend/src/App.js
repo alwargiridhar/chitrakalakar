@@ -1011,6 +1011,23 @@ function AdminDashboard() {
     }));
   };
 
+  const handleCreateSubAdmin = async () => {
+    try {
+      if (!subAdminForm.name || !subAdminForm.email || !subAdminForm.password) {
+        alert('Please fill in all required fields');
+        return;
+      }
+      await adminAPI.createSubAdmin(subAdminForm);
+      setShowCreateSubAdmin(false);
+      setSubAdminForm({ name: '', email: '', password: '', role: 'lead_chitrakar', location: '' });
+      fetchData();
+      alert('Sub-admin created successfully!');
+    } catch (error) {
+      console.error('Error creating sub-admin:', error);
+      alert(error.message || 'Failed to create sub-admin');
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
