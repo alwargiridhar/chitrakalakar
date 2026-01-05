@@ -44,12 +44,16 @@ class UserBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
     name: str
     email: str
-    role: str = "user"  # user, artist, institution, admin
+    role: str = "user"  # user, artist, institution, admin, lead_chitrakar, kalakar
     location: Optional[str] = None
     bio: Optional[str] = None
     categories: Optional[List[str]] = []  # Multiple categories support
     category: Optional[str] = None  # Legacy single category
     avatar: Optional[str] = None
+    phone: Optional[str] = None
+    teaching_rate: Optional[float] = None  # Cost per session for art classes
+    teaches_online: bool = False
+    teaches_offline: bool = False
 
 class UserCreate(UserBase):
     password: str
