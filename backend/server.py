@@ -491,6 +491,184 @@ async def get_featured_artist_detail(artist_id: str):
     
     raise HTTPException(status_code=404, detail="Artist not found")
 
+# ============ ART CLASS ENQUIRY ROUTES ============
+
+@public_router.post("/art-class-enquiry")
+async def create_art_class_enquiry(
+    enquiry_data: ArtClassEnquiryCreate,
+    user: dict = Depends(require_user)
+):
+    """Submit art class enquiry - one per month per user"""
+    # Check if user already has an active enquiry in the last 30 days
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    existing = await db.art_class_enquiries.find_one({
+        "user_id": user["id"],
+        "created_at": {"$gte": thirty_days_ago.isoformat()}
+    })
+    
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail="You can only submit one enquiry per month. Please wait before submitting another."
+        )
+    
+    # Find matching artists based on criteria
+    query = {
+        "role": "artist",
+        "is_approved": True,
+        "is_active": True,
+        "teaching_rate": {"$exists": True, "$ne": None}
+    }
+    
+    # Filter by class type
+    if enquiry_data.class_type == "online":
+        query["teaches_online"] = True
+    elif enquiry_data.class_type == "offline":
+        query["teaches_offline"] = True
+        # For offline, also filter by location
+        if enquiry_data.user_location:
+            query["location"] = {"$regex": enquiry_data.user_location, "$options": "i"}
+    
+    # Filter by budget range for offline classes
+    if enquiry_data.class_type == "offline":
+        budget_ranges = {
+            "250-350": (250, 350),
+            "350-500": (350, 500),
+            "500-1000": (500, 1000)
+        }
+        if enquiry_data.budget_range in budget_ranges:
+            min_rate, max_rate = budget_ranges[enquiry_data.budget_range]
+            query["teaching_rate"] = {"$gte": min_rate, "$lte": max_rate}
+    
+    # Filter by art category
+    if enquiry_data.art_type:
+        query["categories"] = enquiry_data.art_type
+    
+    # Get matching artists, sorted by price (ascending) and limit to 3
+    matching_artists = await db.users.find(
+        query,
+        {"_id": 0, "password": 0}
+    ).sort("teaching_rate", 1).limit(3).to_list(3)
+    
+    matched_ids = [artist["id"] for artist in matching_artists]
+    
+    # Create enquiry
+    enquiry = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "user_name": user["name"],
+        "user_email": user["email"],
+        "user_location": enquiry_data.user_location or user.get("location", ""),
+        "art_type": enquiry_data.art_type,
+        "skill_level": enquiry_data.skill_level,
+        "duration": enquiry_data.duration,
+        "budget_range": enquiry_data.budget_range,
+        "class_type": enquiry_data.class_type,
+        "status": "matched" if matched_ids else "pending",
+        "matched_artists": matched_ids,
+        "contacts_revealed": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    }
+    
+    await db.art_class_enquiries.insert_one(enquiry)
+    
+    return {
+        "success": True,
+        "enquiry_id": enquiry["id"],
+        "matched_count": len(matched_ids),
+        "message": f"Found {len(matched_ids)} matching {'artist' if len(matched_ids) == 1 else 'artists'}"
+    }
+
+@public_router.get("/art-class-matches/{enquiry_id}")
+async def get_art_class_matches(enquiry_id: str, user: dict = Depends(require_user)):
+    """Get matching artists for an enquiry"""
+    enquiry = await db.art_class_enquiries.find_one({"id": enquiry_id, "user_id": user["id"]})
+    
+    if not enquiry:
+        raise HTTPException(status_code=404, detail="Enquiry not found")
+    
+    # Check if expired
+    expires_at = datetime.fromisoformat(enquiry["expires_at"])
+    if datetime.now(timezone.utc) > expires_at:
+        await db.art_class_enquiries.update_one(
+            {"id": enquiry_id},
+            {"$set": {"status": "expired"}}
+        )
+        raise HTTPException(status_code=400, detail="This enquiry has expired")
+    
+    # Get matched artists
+    matched_artists = []
+    for artist_id in enquiry.get("matched_artists", []):
+        artist = await db.users.find_one(
+            {"id": artist_id},
+            {"password": 0, "_id": 0}
+        )
+        if artist:
+            # Get artist's sample artworks
+            artworks = await db.artworks.find(
+                {"artist_id": artist_id, "is_approved": True},
+                {"_id": 0}
+            ).sort("views", -1).limit(3).to_list(3)
+            
+            artist["sample_artworks"] = artworks
+            
+            # Hide contact if not revealed yet
+            if artist_id not in enquiry.get("contacts_revealed", []):
+                artist["phone"] = "***HIDDEN***"
+            
+            matched_artists.append(artist)
+    
+    return {
+        "success": True,
+        "enquiry": {
+            "id": enquiry["id"],
+            "art_type": enquiry["art_type"],
+            "skill_level": enquiry["skill_level"],
+            "class_type": enquiry["class_type"],
+            "budget_range": enquiry.get("budget_range"),
+            "contacts_revealed_count": len(enquiry.get("contacts_revealed", [])),
+            "contacts_remaining": 3 - len(enquiry.get("contacts_revealed", []))
+        },
+        "artists": matched_artists
+    }
+
+@public_router.post("/reveal-contact")
+async def reveal_artist_contact(request: RevealContactRequest, user: dict = Depends(require_user)):
+    """Reveal artist contact - limited to 3 per enquiry"""
+    enquiry = await db.art_class_enquiries.find_one({"id": request.enquiry_id, "user_id": user["id"]})
+    
+    if not enquiry:
+        raise HTTPException(status_code=404, detail="Enquiry not found")
+    
+    # Check limit
+    contacts_revealed = enquiry.get("contacts_revealed", [])
+    if len(contacts_revealed) >= 3:
+        raise HTTPException(status_code=400, detail="You have reached the maximum limit of 3 contacts per enquiry")
+    
+    # Check if artist is in matched list
+    if request.artist_id not in enquiry.get("matched_artists", []):
+        raise HTTPException(status_code=400, detail="Artist not in matched list")
+    
+    # Check if already revealed
+    if request.artist_id in contacts_revealed:
+        raise HTTPException(status_code=400, detail="Contact already revealed")
+    
+    # Reveal contact
+    await db.art_class_enquiries.update_one(
+        {"id": request.enquiry_id},
+        {"$push": {"contacts_revealed": request.artist_id}}
+    )
+    
+    # Get artist contact
+    artist = await db.users.find_one({"id": request.artist_id}, {"phone": 1, "email": 1, "name": 1, "_id": 0})
+    
+    return {
+        "success": True,
+        "artist": artist,
+        "contacts_remaining": 2 - len(contacts_revealed)
+    }
+
 # ============ ADMIN ROUTES ============
 
 @admin_router.get("/dashboard")
