@@ -885,7 +885,7 @@ function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [dashboard, artists, artworks, exhibitions, users, approved, featured] = await Promise.all([
+      const [dashboard, artists, artworks, exhibitions, users, approved, featured, subadmins] = await Promise.all([
         adminAPI.getDashboard(),
         adminAPI.getPendingArtists(),
         adminAPI.getPendingArtworks(),
@@ -893,6 +893,7 @@ function AdminDashboard() {
         adminAPI.getAllUsers(),
         adminAPI.getApprovedArtists().catch(() => ({ artists: [] })),
         adminAPI.getFeaturedArtists().catch(() => ({ contemporary: [], registered: [] })),
+        adminAPI.getSubAdmins().catch(() => ({ sub_admins: [] })),
       ]);
       setDashboardData(dashboard);
       setPendingArtists(artists.artists || []);
@@ -901,6 +902,7 @@ function AdminDashboard() {
       setAllUsers(users.users || []);
       setApprovedArtists(approved.artists || []);
       setFeaturedArtists(featured);
+      setSubAdmins(subadmins.sub_admins || []);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
