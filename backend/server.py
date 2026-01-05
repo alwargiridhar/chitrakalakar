@@ -967,6 +967,44 @@ async def get_artist_preview(artist_id: str, admin: dict = Depends(require_admin
     
     return {"artist": artist}
 
+@admin_router.post("/create-sub-admin")
+async def create_sub_admin(request: CreateSubAdminRequest, admin: dict = Depends(require_admin)):
+    """Admin can create sub-admin users (lead_chitrakar or kalakar)"""
+    # Validate role
+    if request.role not in ["lead_chitrakar", "kalakar"]:
+        raise HTTPException(status_code=400, detail="Invalid role. Must be lead_chitrakar or kalakar")
+    
+    # Check if email exists
+    existing = await db.users.find_one({"email": request.email})
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    
+    # Create sub-admin user
+    sub_admin = {
+        "id": str(uuid.uuid4()),
+        "name": request.name,
+        "email": request.email,
+        "password": hash_password(request.password),
+        "role": request.role,
+        "location": request.location,
+        "is_approved": True,
+        "is_active": True,
+        "created_by": admin["id"],
+        "joined_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(sub_admin)
+    
+    del sub_admin["password"]
+    if "_id" in sub_admin:
+        del sub_admin["_id"]
+    
+    return {
+        "success": True,
+        "message": f"Sub-admin created successfully",
+        "user": sub_admin
+    }
+
 # ============ ARTIST ROUTES ============
 
 @artist_router.get("/dashboard")
