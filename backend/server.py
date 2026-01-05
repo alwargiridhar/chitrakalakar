@@ -226,6 +226,18 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
+async def require_lead_chitrakar(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    user = await require_user(credentials)
+    if user.get("role") not in ["admin", "lead_chitrakar"]:
+        raise HTTPException(status_code=403, detail="Lead Chitrakar access required")
+    return user
+
+async def require_kalakar(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    user = await require_user(credentials)
+    if user.get("role") not in ["admin", "kalakar"]:
+        raise HTTPException(status_code=403, detail="Kalakar access required")
+    return user
+
 async def require_artist(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     user = await require_user(credentials)
     if user.get("role") != "artist":
