@@ -226,9 +226,11 @@ function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center">
-                <span className="text-gray-900 font-bold text-lg">ck</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="ChitraKalakar Logo" 
+                className="w-10 h-10 object-contain"
+              />
               <div>
                 <h3 className="font-bold text-base">{BRAND_NAME}</h3>
                 <p className="text-xs text-gray-400">{BRAND_TAGLINE}</p>
