@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && yarn install && yarn build",
+  "buildCommand": "yarn --cwd frontend install && yarn --cwd frontend build",
   "outputDirectory": "frontend/build",
+  "installCommand": "yarn --cwd frontend install --frozen-lockfile",
   "framework": null,
-  "installCommand": "cd frontend && yarn install",
   "routes": [
     {
       "src": "/static/(.*)",
@@ -25,5 +25,9 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "NODE_VERSION": "18"
+  }
 }
+
