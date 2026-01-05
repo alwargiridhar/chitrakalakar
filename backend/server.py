@@ -71,6 +71,10 @@ class ProfileUpdateRequest(BaseModel):
     location: Optional[str] = None
     categories: Optional[List[str]] = None
     avatar: Optional[str] = None
+    phone: Optional[str] = None
+    teaching_rate: Optional[float] = None
+    teaches_online: Optional[bool] = None
+    teaches_offline: Optional[bool] = None
 
 class LoginRequest(BaseModel):
     email: str
