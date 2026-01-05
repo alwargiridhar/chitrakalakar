@@ -861,6 +861,7 @@ function AdminDashboard() {
   const [allUsers, setAllUsers] = useState([]);
   const [approvedArtists, setApprovedArtists] = useState([]);
   const [featuredArtists, setFeaturedArtists] = useState({ contemporary: [], registered: [] });
+  const [subAdmins, setSubAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Contemporary Artist Form
@@ -869,6 +870,10 @@ function AdminDashboard() {
     name: '', bio: '', avatar: '', categories: [], location: '', artworks: []
   });
   const [newArtworkForm, setNewArtworkForm] = useState({ title: '', image: '', category: '', price: '', description: '' });
+
+  // Sub-Admin Form
+  const [showCreateSubAdmin, setShowCreateSubAdmin] = useState(false);
+  const [subAdminForm, setSubAdminForm] = useState({ name: '', email: '', password: '', role: 'lead_chitrakar', location: '' });
 
   useEffect(() => {
     if (!isAdmin) {
