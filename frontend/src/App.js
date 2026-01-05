@@ -2091,13 +2091,14 @@ function ArtistDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
-                  <input
-                    type="url"
-                    value={newArtwork.image}
-                    onChange={(e) => setNewArtwork({ ...newArtwork, image: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Artwork Image</label>
+                  <ImageUpload
+                    bucket={BUCKETS.ARTWORKS}
+                    currentImage={newArtwork.image}
+                    onUpload={(url) => setNewArtwork({ ...newArtwork, image: url })}
+                    label="Upload Artwork Image"
+                  />
+                </div>
                     placeholder="https://..."
                   />
                 </div>
