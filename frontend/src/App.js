@@ -183,6 +183,7 @@ function Footer() {
     Community: [
       { label: 'Featured Artworks', href: '/exhibitions' },
       { label: 'Artist Directory', href: '/artists' },
+      { label: 'Art Classes', href: '/art-classes' },
       { label: 'How It Works', href: '/contact' },
     ],
     Support: [
