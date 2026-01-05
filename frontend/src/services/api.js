@@ -11,7 +11,7 @@ const getToken = async () => {
 
 // Helper for API calls
 const apiCall = async (endpoint, options = {}) => {
-  const token = getToken();
+  const token = await getToken();
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
