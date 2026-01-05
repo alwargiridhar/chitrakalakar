@@ -31,17 +31,8 @@ const apiCall = async (endpoint, options = {}) => {
   return response.json();
 };
 
-// Auth APIs
+// Auth APIs - Now using Supabase directly, these are for profile updates only
 export const authAPI = {
-  login: (email, password) => apiCall('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  }),
-  signup: (data) => apiCall('/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  getMe: () => apiCall('/auth/me'),
   updateProfile: (data) => apiCall('/auth/profile', {
     method: 'PUT',
     body: JSON.stringify(data),
