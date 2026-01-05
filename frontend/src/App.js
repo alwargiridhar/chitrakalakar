@@ -38,8 +38,11 @@ function NavBar() {
   const navLinks = [
     { label: 'About', href: '/about' },
     { label: 'Artists', href: '/artists' },
-    { label: 'Art Classes', href: '/art-classes' },
+  ];
+
+  const navLinksAfterExhibitions = [
     { label: 'Contact', href: '/contact' },
+    { label: 'Art Classes', href: '/art-classes' },
   ];
 
   return (
