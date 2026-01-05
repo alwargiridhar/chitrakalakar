@@ -47,9 +47,11 @@ function NavBar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">ck</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="ChitraKalakar Logo" 
+              className="w-10 h-10 object-contain"
+            />
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-gray-900">{BRAND_NAME}</h1>
               <p className="text-xs text-gray-500">{BRAND_TAGLINE}</p>
