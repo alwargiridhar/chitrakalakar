@@ -1907,13 +1907,12 @@ function ArtistDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture URL</label>
-                  <input
-                    type="url"
-                    value={profileForm.avatar}
-                    onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                    placeholder="https://..."
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
+                  <ImageUpload
+                    bucket={BUCKETS.AVATARS}
+                    currentImage={profileForm.avatar}
+                    onUpload={(url) => setProfileForm({ ...profileForm, avatar: url })}
+                    label="Upload Profile Picture"
                   />
                 </div>
                 <div>
@@ -1925,6 +1924,62 @@ function ArtistDashboard() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     placeholder="Tell us about yourself..."
                   />
+                </div>
+
+                {/* Teaching Profile Section */}
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Teaching Profile (Optional)</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Teaching Rate (₹ per session)</label>
+                      <input
+                        type="number"
+                        value={profileForm.teaching_rate || ''}
+                        onChange={(e) => setProfileForm({ ...profileForm, teaching_rate: parseFloat(e.target.value) || null })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                        placeholder="500"
+                        min="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                      <input
+                        type="tel"
+                        value={profileForm.phone || ''}
+                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                        placeholder="+91 9876543210"
+                      />
+                    </div>
+
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={profileForm.teaches_online || false}
+                          onChange={(e) => setProfileForm({ ...profileForm, teaches_online: e.target.checked })}
+                          className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-sm text-gray-700">💻 I teach online</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={profileForm.teaches_offline || false}
+                          onChange={(e) => setProfileForm({ ...profileForm, teaches_offline: e.target.checked })}
+                          className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-sm text-gray-700">📍 I teach in-person</span>
+                      </label>
+                    </div>
+
+                    <p className="text-xs text-gray-500">
+                      Setting teaching preferences will make you visible to students looking for art classes
+                    </p>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Art Categories (select multiple)</label>
