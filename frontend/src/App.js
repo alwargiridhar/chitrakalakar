@@ -603,9 +603,11 @@ function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">ck</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="ChitraKalakar Logo" 
+              className="w-16 h-16 object-contain"
+            />
           </div>
         </div>
 
