@@ -3,8 +3,11 @@ import { supabase } from '../lib/supabase';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Get auth token from localStorage
-const getToken = () => localStorage.getItem('chitrakalakar_token');
+// Get auth token from Supabase session
+const getToken = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token;
+};
 
 // Helper for API calls
 const apiCall = async (endpoint, options = {}) => {
