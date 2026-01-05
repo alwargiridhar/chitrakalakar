@@ -618,10 +618,6 @@ function LoginPage() {
               </Link>
             </p>
           </div>
-
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-            <p><strong>Admin Login:</strong> admin@chitrakalakar.com / admin123</p>
-          </div>
         </div>
       </div>
     </div>
