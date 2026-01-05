@@ -1135,9 +1135,45 @@ async def create_exhibition(
     start_date: str = Body(...),
     end_date: str = Body(...),
     artwork_ids: List[str] = Body([]),
-    days_paid: int = Body(3),
+    exhibition_type: str = Body("Kalakanksh"),  # Kalakanksh, Kalahruday, KalaDeeksh
+    voluntary_platform_fee: float = Body(0),
     artist: dict = Depends(require_artist)
 ):
+    """
+    Create exhibition with pricing tiers:
+    - Kalakanksh: ₹1000, 3 days active+archived, 10 artworks base (max 15 with ₹100/extra)
+    - Kalahruday: ₹2000, 5 days active+archived, 20 artworks
+    - KalaDeeksh: ₹3000, 10 days active+archived, 30 artworks
+    """
+    # Define exhibition types and pricing
+    exhibition_config = {
+        "Kalakanksh": {"base_fee": 1000, "days": 3, "max_base_artworks": 10, "max_total_artworks": 15, "extra_artwork_fee": 100},
+        "Kalahruday": {"base_fee": 2000, "days": 5, "max_base_artworks": 20, "max_total_artworks": 20, "extra_artwork_fee": 0},
+        "KalaDeeksh": {"base_fee": 3000, "days": 10, "max_base_artworks": 30, "max_total_artworks": 30, "extra_artwork_fee": 0}
+    }
+    
+    if exhibition_type not in exhibition_config:
+        raise HTTPException(status_code=400, detail="Invalid exhibition type")
+    
+    config = exhibition_config[exhibition_type]
+    num_artworks = len(artwork_ids)
+    
+    # Validate artwork count
+    if num_artworks > config["max_total_artworks"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{exhibition_type} allows maximum {config['max_total_artworks']} artworks"
+        )
+    
+    # Calculate additional artwork fees (only for Kalakanksh)
+    additional_artworks = 0
+    additional_artwork_fee = 0
+    if exhibition_type == "Kalakanksh" and num_artworks > config["max_base_artworks"]:
+        additional_artworks = num_artworks - config["max_base_artworks"]
+        additional_artwork_fee = additional_artworks * config["extra_artwork_fee"]
+    
+    total_fees = config["base_fee"] + additional_artwork_fee
+    
     exhibition = {
         "id": str(uuid.uuid4()),
         "artist_id": artist["id"],
@@ -1148,15 +1184,24 @@ async def create_exhibition(
         "artwork_ids": artwork_ids,
         "status": "upcoming",
         "views": 0,
-        "fees": days_paid * 333,  # ~1000 for 3 days
-        "days_paid": days_paid,
+        "exhibition_type": exhibition_type,
+        "fees": total_fees,
+        "days_paid": config["days"],
+        "max_artworks": config["max_base_artworks"],
+        "additional_artworks": additional_artworks,
+        "additional_artwork_fee": additional_artwork_fee,
+        "voluntary_platform_fee": voluntary_platform_fee,
         "is_approved": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.exhibitions.insert_one(exhibition)
     
-    return {"success": True, "exhibition": exhibition, "message": "Exhibition submitted for approval"}
+    return {
+        "success": True,
+        "exhibition": exhibition,
+        "message": f"Exhibition submitted for approval. Total fee: ₹{total_fees}"
+    }
 
 # ============ ROOT ROUTE ============
 
