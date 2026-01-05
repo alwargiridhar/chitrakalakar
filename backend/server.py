@@ -1,69 +1,39 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Body
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
-from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
-import uuid
+from typing import Optional, List
 from datetime import datetime, timezone, timedelta
-import hashlib
-import secrets
+import os
+from dotenv import load_dotenv
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# Import Supabase authentication
+from supabase_auth import (
+    require_user, 
+    require_artist, 
+    require_admin,
+    require_lead_chitrakar,
+    require_kalakar,
+    get_current_user
+)
+from supabase_client import get_supabase_client
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'chitrakalakar')]
+load_dotenv()
 
-# Create the main app
 app = FastAPI(title="ChitraKalakar API")
+security = HTTPBearer()
 
-# Create routers
-api_router = APIRouter(prefix="/api")
-auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
-admin_router = APIRouter(prefix="/admin", tags=["Admin"])
-artist_router = APIRouter(prefix="/artist", tags=["Artist"])
-public_router = APIRouter(prefix="/public", tags=["Public"])
-
-# Security
-security = HTTPBearer(auto_error=False)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# CORS configuration
+CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ============ MODELS ============
-
-class UserBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    name: str
-    email: str
-    role: str = "user"  # user, artist, institution, admin, lead_chitrakar, kalakar
-    location: Optional[str] = None
-    bio: Optional[str] = None
-    categories: Optional[List[str]] = []  # Multiple categories support
-    category: Optional[str] = None  # Legacy single category
-    avatar: Optional[str] = None
-    phone: Optional[str] = None
-    teaching_rate: Optional[float] = None  # Cost per session for art classes
-    teaches_online: bool = False
-    teaches_offline: bool = False
-
-class UserCreate(UserBase):
-    password: str
-
-class User(UserBase):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    is_approved: bool = True
-    is_active: bool = True
-    is_featured: bool = False  # Featured artist flag
-    joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -76,259 +46,534 @@ class ProfileUpdateRequest(BaseModel):
     teaches_online: Optional[bool] = None
     teaches_offline: Optional[bool] = None
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class ArtworkBase(BaseModel):
+class ArtworkCreate(BaseModel):
     title: str
+    description: Optional[str] = None
     category: str
     price: float
-    image: str
-    description: Optional[str] = None
-
-class Artwork(ArtworkBase):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    artist_id: str
-    is_for_exhibition: bool = False
-    is_approved: bool = False
-    views: int = 0
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class Exhibition(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    artist_id: str
-    name: str
-    description: Optional[str] = None
-    start_date: str
-    end_date: str
-    artwork_ids: List[str] = []
-    status: str = "upcoming"  # upcoming, active, completed, archived
-    views: int = 0
-    exhibition_type: str = "Kalakanksh"  # Kalakanksh, Kalahruday, KalaDeeksh
-    fees: float = 1000
-    days_paid: int = 3  # Number of days paid for
-    max_artworks: int = 10  # Base artworks included
-    additional_artworks: int = 0  # Extra artworks purchased
-    additional_artwork_fee: float = 0  # Fee for extra artworks
-    voluntary_platform_fee: float = 0  # Optional platform support fee
-    is_approved: bool = False
-    archived_at: Optional[str] = None  # When it was archived
-    archive_expires_at: Optional[str] = None  # When archive access expires
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class Order(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    order_number: str = Field(default_factory=lambda: f"ORD-{datetime.now().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}")
-    artist_id: str
-    artwork_id: Optional[str] = None
-    artwork_title: str
-    customer_id: str
-    customer_name: str
-    customer_email: str
-    amount: float
-    commission_fee: float = 0
-    artist_receives: float = 0
-    status: str = "pending"
-    notes: Optional[str] = None
-    start_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    due_date: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-# Featured Artist (Contemporary artist added by admin)
-class FeaturedArtistCreate(BaseModel):
-    name: str
-    bio: str  # Up to 2500 words
-    avatar: str  # Picture URL
-    categories: List[str] = []
-    location: Optional[str] = None
-    artworks: List[dict] = []  # Up to 10 artworks [{title, image, category, price, description}]
-
-class ArtistApprovalRequest(BaseModel):
-    artist_id: str
-    approved: bool
-    rejection_reason: Optional[str] = None
+    image: Optional[str] = None
 
 class ArtworkApprovalRequest(BaseModel):
     artwork_id: str
     approved: bool
 
+class ExhibitionCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    start_date: str
+    end_date: str
+    artwork_ids: List[str] = []
+    exhibition_type: str = "Kalakanksh"
+    voluntary_platform_fee: float = 0
+
 class ExhibitionApprovalRequest(BaseModel):
     exhibition_id: str
     approved: bool
 
+class FeaturedArtistCreate(BaseModel):
+    name: str
+    bio: str
+    avatar: Optional[str] = None
+    categories: List[str]
+    location: Optional[str] = None
+    artworks: List[dict] = []
+
 class FeatureRegisteredArtistRequest(BaseModel):
     artist_id: str
     featured: bool
-
-# Art Class Enquiry Models
-class ArtClassEnquiry(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    user_name: str
-    user_email: str
-    user_location: str
-    art_type: str  # Category of art interested in
-    skill_level: str  # beginner, intermediate, advanced
-    duration: str  # 1 month, 3 months, 6 months, custom
-    budget_range: str  # 250-350, 350-500, 500-1000
-    class_type: str  # online, offline
-    status: str = "pending"  # pending, matched, expired
-    matched_artists: List[str] = []  # Artist IDs
-    contacts_revealed: List[str] = []  # Artist IDs whose contact was revealed
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=30))
 
 class ArtClassEnquiryCreate(BaseModel):
     art_type: str
     skill_level: str
     duration: str
     budget_range: str
-    class_type: str  # online or offline
+    class_type: str
     user_location: Optional[str] = None
 
 class RevealContactRequest(BaseModel):
     enquiry_id: str
     artist_id: str
 
-# Sub-Admin User Creation
 class CreateSubAdminRequest(BaseModel):
     name: str
     email: str
     password: str
-    role: str  # lead_chitrakar or kalakar
+    role: str
     location: Optional[str] = None
 
-# ============ HELPER FUNCTIONS ============
+# ============ HEALTH CHECK ============
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy", "database": "supabase"}
 
-def verify_password(password: str, hashed: str) -> bool:
-    return hash_password(password) == hashed
+# ============ PUBLIC ROUTES ============
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[dict]:
-    if not credentials:
-        return None
-    token = credentials.credentials
-    user = await db.users.find_one({"id": token})
-    return user
+@app.get("/api/public/stats")
+async def get_public_stats():
+    """Get platform statistics"""
+    supabase = get_supabase_client()
+    
+    # Get counts
+    artists_response = supabase.table('users').select('id', count='exact').eq('role', 'artist').eq('is_approved', True).execute()
+    artworks_response = supabase.table('artworks').select('id', count='exact').eq('is_approved', True).execute()
+    exhibitions_response = supabase.table('exhibitions').select('id', count='exact').eq('is_approved', True).execute()
+    
+    return {
+        "total_artists": artists_response.count or 0,
+        "total_artworks": artworks_response.count or 0,
+        "active_exhibitions": exhibitions_response.count or 0,
+        "satisfaction_rate": 98
+    }
 
-async def require_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    user = await get_current_user(credentials)
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return user
+@app.get("/api/public/featured-artists")
+async def get_featured_artists():
+    """Get featured artists (contemporary and registered)"""
+    supabase = get_supabase_client()
+    
+    # Get contemporary featured artists
+    contemporary = supabase.table('featured_artists').select('*').eq('type', 'contemporary').eq('is_featured', True).execute()
+    
+    # Get registered featured artists
+    registered = supabase.table('featured_artists').select('*').eq('type', 'registered').eq('is_featured', True).execute()
+    
+    return {
+        "contemporary": contemporary.data or [],
+        "registered": registered.data or []
+    }
 
-async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    user = await require_user(credentials)
-    if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return user
+@app.get("/api/public/featured-artist/{artist_id}")
+async def get_featured_artist_detail(artist_id: str):
+    """Get detailed info about a featured artist"""
+    supabase = get_supabase_client()
+    
+    artist = supabase.table('featured_artists').select('*').eq('id', artist_id).single().execute()
+    
+    if not artist.data:
+        raise HTTPException(status_code=404, detail="Artist not found")
+    
+    return {"artist": artist.data}
 
-async def require_lead_chitrakar(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    user = await require_user(credentials)
-    if user.get("role") not in ["admin", "lead_chitrakar"]:
-        raise HTTPException(status_code=403, detail="Lead Chitrakar access required")
-    return user
+@app.get("/api/public/exhibitions")
+async def get_public_exhibitions():
+    """Get all approved exhibitions"""
+    supabase = get_supabase_client()
+    
+    exhibitions = supabase.table('exhibitions').select('*, users(name)').eq('is_approved', True).order('created_at', desc=True).execute()
+    
+    return {"exhibitions": exhibitions.data or []}
 
-async def require_kalakar(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    user = await require_user(credentials)
-    if user.get("role") not in ["admin", "kalakar"]:
-        raise HTTPException(status_code=403, detail="Kalakar access required")
-    return user
+@app.get("/api/public/exhibitions/active")
+async def get_active_exhibitions():
+    """Get active exhibitions"""
+    supabase = get_supabase_client()
+    
+    exhibitions = supabase.table('exhibitions').select('*, users(name)').eq('is_approved', True).eq('status', 'active').execute()
+    
+    return {"exhibitions": exhibitions.data or []}
 
-async def require_artist(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    user = await require_user(credentials)
-    if user.get("role") != "artist":
-        raise HTTPException(status_code=403, detail="Artist access required")
-    if not user.get("is_approved", False):
-        raise HTTPException(status_code=403, detail="Artist account pending approval")
-    return user
+@app.get("/api/public/exhibitions/archived")
+async def get_archived_exhibitions():
+    """Get archived exhibitions"""
+    supabase = get_supabase_client()
+    
+    exhibitions = supabase.table('exhibitions').select('*, users(name)').eq('is_approved', True).eq('status', 'archived').execute()
+    
+    return {"exhibitions": exhibitions.data or []}
 
-# ============ STARTUP ============
+# ============ ART CLASS ENQUIRY ROUTES ============
 
-@app.on_event("startup")
-async def startup_event():
-    # Create default admin if not exists
-    admin = await db.users.find_one({"email": "admin@chitrakalakar.com"})
-    if not admin:
-        admin_user = {
-            "id": str(uuid.uuid4()),
-            "name": "Admin",
-            "email": "admin@chitrakalakar.com",
-            "password": hash_password("admin123"),
-            "role": "admin",
-            "is_approved": True,
-            "is_active": True,
-            "joined_at": datetime.now(timezone.utc).isoformat()
+@app.post("/api/public/art-class-enquiry")
+async def create_art_class_enquiry(enquiry_data: ArtClassEnquiryCreate, user: dict = Depends(require_user)):
+    """Submit art class enquiry - one per month per user"""
+    supabase = get_supabase_client()
+    
+    # Check if user already has an active enquiry in the last 30 days
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    
+    existing = supabase.table('art_class_enquiries').select('id').eq('user_id', user['id']).gte('created_at', thirty_days_ago).execute()
+    
+    if existing.data:
+        raise HTTPException(status_code=400, detail="You can only submit one enquiry per month")
+    
+    # Find matching artists
+    query = supabase.table('users').select('*').eq('role', 'artist').eq('is_approved', True).eq('is_active', True).not_.is_('teaching_rate', 'null')
+    
+    # Filter by class type
+    if enquiry_data.class_type == "online":
+        query = query.eq('teaches_online', True)
+    elif enquiry_data.class_type == "offline":
+        query = query.eq('teaches_offline', True)
+        if enquiry_data.user_location:
+            query = query.ilike('location', f'%{enquiry_data.user_location}%')
+    
+    # Filter by budget range for offline classes
+    if enquiry_data.class_type == "offline":
+        budget_ranges = {
+            "250-350": (250, 350),
+            "350-500": (350, 500),
+            "500-1000": (500, 1000)
         }
-        await db.users.insert_one(admin_user)
-        logger.info("Default admin user created: admin@chitrakalakar.com / admin123")
-
-# ============ AUTH ROUTES ============
-
-@auth_router.post("/signup")
-async def signup(user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
-    if existing:
-        raise HTTPException(status_code=409, detail="Email already registered")
+        if enquiry_data.budget_range in budget_ranges:
+            min_rate, max_rate = budget_ranges[enquiry_data.budget_range]
+            query = query.gte('teaching_rate', min_rate).lte('teaching_rate', max_rate)
     
-    user_dict = user_data.model_dump()
-    user_dict["id"] = str(uuid.uuid4())
-    user_dict["password"] = hash_password(user_data.password)
-    user_dict["is_active"] = True
-    user_dict["is_featured"] = False
-    user_dict["joined_at"] = datetime.now(timezone.utc).isoformat()
+    # Filter by art category
+    if enquiry_data.art_type:
+        query = query.contains('categories', [enquiry_data.art_type])
     
-    # Handle categories - ensure it's a list
-    if user_dict.get("categories") is None:
-        user_dict["categories"] = []
-    if user_dict.get("category") and user_dict["category"] not in user_dict["categories"]:
-        user_dict["categories"].append(user_dict["category"])
+    matching_artists = query.order('teaching_rate').limit(3).execute()
+    matched_ids = [artist['id'] for artist in (matching_artists.data or [])]
     
-    # Artists need approval
-    user_dict["is_approved"] = user_data.role != "artist"
+    # Get user info
+    user_profile = supabase.table('users').select('name, email, location').eq('id', user['id']).single().execute()
     
-    await db.users.insert_one(user_dict)
+    # Create enquiry
+    enquiry = {
+        "user_id": user['id'],
+        "user_name": user_profile.data.get('name', ''),
+        "user_email": user_profile.data.get('email', ''),
+        "user_location": enquiry_data.user_location or user_profile.data.get('location', ''),
+        "art_type": enquiry_data.art_type,
+        "skill_level": enquiry_data.skill_level,
+        "duration": enquiry_data.duration,
+        "budget_range": enquiry_data.budget_range,
+        "class_type": enquiry_data.class_type,
+        "status": "matched" if matched_ids else "pending",
+        "matched_artists": matched_ids,
+        "contacts_revealed": []
+    }
     
-    del user_dict["password"]
-    if "_id" in user_dict:
-        del user_dict["_id"]
+    result = supabase.table('art_class_enquiries').insert(enquiry).execute()
     
     return {
         "success": True,
-        "message": "Account created" + (" - pending admin approval" if user_data.role == "artist" else ""),
-        "user": user_dict,
-        "token": user_dict["id"]
+        "enquiry_id": result.data[0]['id'],
+        "matched_count": len(matched_ids),
+        "message": f"Found {len(matched_ids)} matching artist(s)"
     }
 
-@auth_router.post("/login")
-async def login(data: LoginRequest):
-    user = await db.users.find_one({"email": data.email})
-    if not user or not verify_password(data.password, user.get("password", "")):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+@app.get("/api/public/art-class-matches/{enquiry_id}")
+async def get_art_class_matches(enquiry_id: str, user: dict = Depends(require_user)):
+    """Get matching artists for an enquiry"""
+    supabase = get_supabase_client()
     
-    if not user.get("is_active", True):
-        raise HTTPException(status_code=403, detail="Account is deactivated")
+    enquiry = supabase.table('art_class_enquiries').select('*').eq('id', enquiry_id).eq('user_id', user['id']).single().execute()
     
-    user_response = {k: v for k, v in user.items() if k not in ["password", "_id"]}
+    if not enquiry.data:
+        raise HTTPException(status_code=404, detail="Enquiry not found")
+    
+    # Check if expired
+    expires_at = datetime.fromisoformat(enquiry.data['expires_at'])
+    if datetime.now(timezone.utc) > expires_at:
+        supabase.table('art_class_enquiries').update({"status": "expired"}).eq('id', enquiry_id).execute()
+        raise HTTPException(status_code=400, detail="This enquiry has expired")
+    
+    # Get matched artists
+    matched_artists = []
+    for artist_id in (enquiry.data.get('matched_artists') or []):
+        artist = supabase.table('users').select('*').eq('id', artist_id).single().execute()
+        if artist.data:
+            # Get sample artworks
+            artworks = supabase.table('artworks').select('*').eq('artist_id', artist_id).eq('is_approved', True).order('views', desc=True).limit(3).execute()
+            artist.data['sample_artworks'] = artworks.data or []
+            
+            # Hide contact if not revealed
+            if artist_id not in (enquiry.data.get('contacts_revealed') or []):
+                artist.data['phone'] = "***HIDDEN***"
+            
+            matched_artists.append(artist.data)
     
     return {
         "success": True,
-        "message": "Login successful",
-        "user": user_response,
-        "token": user["id"]
+        "enquiry": {
+            "id": enquiry.data['id'],
+            "art_type": enquiry.data['art_type'],
+            "skill_level": enquiry.data['skill_level'],
+            "class_type": enquiry.data['class_type'],
+            "budget_range": enquiry.data.get('budget_range'),
+            "contacts_revealed_count": len(enquiry.data.get('contacts_revealed') or []),
+            "contacts_remaining": 3 - len(enquiry.data.get('contacts_revealed') or [])
+        },
+        "artists": matched_artists
     }
 
-@auth_router.get("/me")
-async def get_me(user: dict = Depends(require_user)):
-    user_response = {k: v for k, v in user.items() if k not in ["password", "_id"]}
-    return {"success": True, "user": user_response}
+@app.post("/api/public/reveal-contact")
+async def reveal_artist_contact(request: RevealContactRequest, user: dict = Depends(require_user)):
+    """Reveal artist contact - limited to 3 per enquiry"""
+    supabase = get_supabase_client()
+    
+    enquiry = supabase.table('art_class_enquiries').select('*').eq('id', request.enquiry_id).eq('user_id', user['id']).single().execute()
+    
+    if not enquiry.data:
+        raise HTTPException(status_code=404, detail="Enquiry not found")
+    
+    contacts_revealed = enquiry.data.get('contacts_revealed') or []
+    if len(contacts_revealed) >= 3:
+        raise HTTPException(status_code=400, detail="Contact limit reached")
+    
+    if request.artist_id not in (enquiry.data.get('matched_artists') or []):
+        raise HTTPException(status_code=400, detail="Artist not in matched list")
+    
+    if request.artist_id in contacts_revealed:
+        raise HTTPException(status_code=400, detail="Contact already revealed")
+    
+    # Reveal contact
+    contacts_revealed.append(request.artist_id)
+    supabase.table('art_class_enquiries').update({"contacts_revealed": contacts_revealed}).eq('id', request.enquiry_id).execute()
+    
+    # Get artist contact
+    artist = supabase.table('users').select('phone, email, name').eq('id', request.artist_id).single().execute()
+    
+    return {
+        "success": True,
+        "artist": artist.data,
+        "contacts_remaining": 2 - len(contacts_revealed) + 1
+    }
 
-@auth_router.put("/profile")
+# ============ ADMIN ROUTES ============
+
+@app.get("/api/admin/dashboard")
+async def get_admin_dashboard(admin: dict = Depends(require_admin)):
+    """Get admin dashboard statistics"""
+    supabase = get_supabase_client()
+    
+    pending_artists = supabase.table('users').select('id', count='exact').eq('role', 'artist').eq('is_approved', False).execute()
+    pending_artworks = supabase.table('artworks').select('id', count='exact').eq('is_approved', False).execute()
+    pending_exhibitions = supabase.table('exhibitions').select('id', count='exact').eq('is_approved', False).execute()
+    total_users = supabase.table('users').select('id', count='exact').execute()
+    
+    return {
+        "pending_artists": pending_artists.count or 0,
+        "pending_artworks": pending_artworks.count or 0,
+        "pending_exhibitions": pending_exhibitions.count or 0,
+        "total_users": total_users.count or 0
+    }
+
+@app.get("/api/admin/pending-artists")
+async def get_pending_artists(admin: dict = Depends(require_admin)):
+    """Get artists awaiting approval"""
+    supabase = get_supabase_client()
+    
+    artists = supabase.table('users').select('*').eq('role', 'artist').eq('is_approved', False).execute()
+    
+    return {"artists": artists.data or []}
+
+@app.post("/api/admin/approve-artist")
+async def approve_artist(artist_id: str, approved: bool, admin: dict = Depends(require_admin)):
+    """Approve or reject an artist"""
+    supabase = get_supabase_client()
+    
+    if approved:
+        result = supabase.table('users').update({"is_approved": True, "is_active": True}).eq('id', artist_id).execute()
+    else:
+        result = supabase.table('users').delete().eq('id', artist_id).execute()
+    
+    return {"success": True, "message": f"Artist {'approved' if approved else 'rejected'}"}
+
+@app.get("/api/admin/pending-artworks")
+async def get_pending_artworks(admin: dict = Depends(require_admin)):
+    """Get artworks awaiting approval"""
+    supabase = get_supabase_client()
+    
+    artworks = supabase.table('artworks').select('*, users(name)').eq('is_approved', False).execute()
+    
+    return {"artworks": artworks.data or []}
+
+@app.post("/api/admin/approve-artwork")
+async def approve_artwork(request: ArtworkApprovalRequest, admin: dict = Depends(require_admin)):
+    """Approve or reject an artwork"""
+    supabase = get_supabase_client()
+    
+    if request.approved:
+        result = supabase.table('artworks').update({"is_approved": True}).eq('id', request.artwork_id).execute()
+    else:
+        result = supabase.table('artworks').delete().eq('id', request.artwork_id).execute()
+    
+    return {"success": True, "message": f"Artwork {'approved' if request.approved else 'rejected'}"}
+
+@app.get("/api/admin/pending-exhibitions")
+async def get_pending_exhibitions(admin: dict = Depends(require_admin)):
+    """Get exhibitions awaiting approval"""
+    supabase = get_supabase_client()
+    
+    exhibitions = supabase.table('exhibitions').select('*, users(name)').eq('is_approved', False).execute()
+    
+    return {"exhibitions": exhibitions.data or []}
+
+@app.post("/api/admin/approve-exhibition")
+async def approve_exhibition(request: ExhibitionApprovalRequest, admin: dict = Depends(require_admin)):
+    """Approve or reject an exhibition"""
+    supabase = get_supabase_client()
+    
+    if request.approved:
+        result = supabase.table('exhibitions').update({"is_approved": True, "status": "active"}).eq('id', request.exhibition_id).execute()
+    else:
+        result = supabase.table('exhibitions').delete().eq('id', request.exhibition_id).execute()
+    
+    return {"success": True, "message": f"Exhibition {'approved' if request.approved else 'rejected'}"}
+
+@app.get("/api/admin/users")
+async def get_all_users(admin: dict = Depends(require_admin)):
+    """Get all users"""
+    supabase = get_supabase_client()
+    
+    users = supabase.table('users').select('*').execute()
+    
+    return {"users": users.data or []}
+
+@app.get("/api/admin/approved-artists")
+async def get_approved_artists(admin: dict = Depends(require_admin)):
+    """Get approved artists for featuring"""
+    supabase = get_supabase_client()
+    
+    artists = supabase.table('users').select('*').eq('role', 'artist').eq('is_approved', True).execute()
+    
+    return {"artists": artists.data or []}
+
+@app.post("/api/admin/feature-contemporary-artist")
+async def feature_contemporary_artist(artist_data: FeaturedArtistCreate, admin: dict = Depends(require_admin)):
+    """Add a contemporary featured artist"""
+    supabase = get_supabase_client()
+    
+    featured_artist = {
+        "name": artist_data.name,
+        "bio": artist_data.bio,
+        "avatar": artist_data.avatar,
+        "categories": artist_data.categories,
+        "location": artist_data.location,
+        "artworks": artist_data.artworks,
+        "type": "contemporary",
+        "is_featured": True
+    }
+    
+    result = supabase.table('featured_artists').insert(featured_artist).execute()
+    
+    return {"success": True, "artist": result.data[0]}
+
+@app.delete("/api/admin/feature-contemporary-artist/{artist_id}")
+async def delete_contemporary_artist(artist_id: str, admin: dict = Depends(require_admin)):
+    """Remove a contemporary featured artist"""
+    supabase = get_supabase_client()
+    
+    result = supabase.table('featured_artists').delete().eq('id', artist_id).execute()
+    
+    return {"success": True, "message": "Featured artist removed"}
+
+@app.post("/api/admin/feature-registered-artist")
+async def feature_registered_artist(request: FeatureRegisteredArtistRequest, admin: dict = Depends(require_admin)):
+    """Feature or unfeature a registered artist"""
+    supabase = get_supabase_client()
+    
+    if request.featured:
+        # Get artist details
+        artist = supabase.table('users').select('*').eq('id', request.artist_id).single().execute()
+        
+        if not artist.data:
+            raise HTTPException(status_code=404, detail="Artist not found")
+        
+        # Get artist's artworks
+        artworks = supabase.table('artworks').select('*').eq('artist_id', request.artist_id).eq('is_approved', True).order('views', desc=True).limit(10).execute()
+        
+        # Create featured entry
+        featured_artist = {
+            "name": artist.data['name'],
+            "bio": artist.data.get('bio', ''),
+            "avatar": artist.data.get('avatar'),
+            "categories": artist.data.get('categories', []),
+            "location": artist.data.get('location'),
+            "artworks": artworks.data or [],
+            "type": "registered",
+            "artist_id": request.artist_id,
+            "is_featured": True
+        }
+        
+        result = supabase.table('featured_artists').insert(featured_artist).execute()
+    else:
+        # Remove from featured
+        result = supabase.table('featured_artists').delete().eq('artist_id', request.artist_id).execute()
+    
+    return {"success": True, "message": f"Artist {'featured' if request.featured else 'unfeatured'}"}
+
+@app.post("/api/admin/create-sub-admin")
+async def create_sub_admin(request: CreateSubAdminRequest, admin: dict = Depends(require_admin)):
+    """Admin can create sub-admin users"""
+    # Note: This would need to create a Supabase Auth user
+    # For now, return instruction to create via Supabase dashboard
+    raise HTTPException(status_code=501, detail="Please create sub-admin users via Supabase Auth dashboard and update their role in the users table")
+
+@app.get("/api/admin/sub-admins")
+async def get_sub_admins(admin: dict = Depends(require_admin)):
+    """Get all sub-admin users"""
+    supabase = get_supabase_client()
+    
+    sub_admins = supabase.table('users').select('*').in_('role', ['lead_chitrakar', 'kalakar']).execute()
+    
+    return {"sub_admins": sub_admins.data or []}
+
+# ============ LEAD CHITRAKAR ROUTES ============
+
+@app.post("/api/admin/lead-chitrakar/approve-artwork")
+async def lead_chitrakar_approve_artwork(request: ArtworkApprovalRequest, user: dict = Depends(require_lead_chitrakar)):
+    """Lead Chitrakar can approve artworks"""
+    supabase = get_supabase_client()
+    
+    if request.approved:
+        result = supabase.table('artworks').update({"is_approved": True}).eq('id', request.artwork_id).execute()
+    else:
+        result = supabase.table('artworks').delete().eq('id', request.artwork_id).execute()
+    
+    return {"success": True, "message": f"Artwork {'approved' if request.approved else 'rejected'}"}
+
+# ============ KALAKAR ROUTES ============
+
+@app.get("/api/admin/kalakar/exhibitions-analytics")
+async def kalakar_exhibitions_analytics(user: dict = Depends(require_kalakar)):
+    """Kalakar can view exhibition analytics"""
+    supabase = get_supabase_client()
+    
+    total = supabase.table('exhibitions').select('id', count='exact').execute()
+    active = supabase.table('exhibitions').select('id', count='exact').eq('status', 'active').execute()
+    archived = supabase.table('exhibitions').select('id', count='exact').eq('status', 'archived').execute()
+    
+    # Get revenue
+    exhibitions = supabase.table('exhibitions').select('fees, voluntary_platform_fee').execute()
+    total_revenue = sum(e.get('fees', 0) for e in (exhibitions.data or []))
+    voluntary_fees = sum(e.get('voluntary_platform_fee', 0) for e in (exhibitions.data or []))
+    
+    return {
+        "total_exhibitions": total.count or 0,
+        "active_exhibitions": active.count or 0,
+        "archived_exhibitions": archived.count or 0,
+        "total_revenue": total_revenue,
+        "voluntary_platform_fees": voluntary_fees
+    }
+
+@app.get("/api/admin/kalakar/payment-records")
+async def kalakar_payment_records(user: dict = Depends(require_kalakar)):
+    """Kalakar can view payment records"""
+    supabase = get_supabase_client()
+    
+    exhibitions = supabase.table('exhibitions').select('*, users(name)').eq('is_approved', True).order('created_at', desc=True).execute()
+    
+    return {"payment_records": exhibitions.data or []}
+
+# ============ ARTIST ROUTES ============
+
+@app.get("/api/artist/profile")
+async def get_artist_profile(artist: dict = Depends(require_artist)):
+    """Get artist profile"""
+    supabase = get_supabase_client()
+    
+    profile = supabase.table('users').select('*').eq('id', artist['id']).single().execute()
+    
+    return {"profile": profile.data}
+
+@app.put("/api/auth/profile")
 async def update_profile(updates: ProfileUpdateRequest, user: dict = Depends(require_user)):
-    """Update user profile including categories and teaching info"""
+    """Update user profile"""
+    supabase = get_supabase_client()
+    
     update_data = {}
     if updates.name is not None:
         update_data["name"] = updates.name
@@ -338,9 +583,6 @@ async def update_profile(updates: ProfileUpdateRequest, user: dict = Depends(req
         update_data["location"] = updates.location
     if updates.categories is not None:
         update_data["categories"] = updates.categories
-        # Update legacy category field too
-        if updates.categories:
-            update_data["category"] = updates.categories[0]
     if updates.avatar is not None:
         update_data["avatar"] = updates.avatar
     if updates.phone is not None:
@@ -353,955 +595,100 @@ async def update_profile(updates: ProfileUpdateRequest, user: dict = Depends(req
         update_data["teaches_offline"] = updates.teaches_offline
     
     if update_data:
-        await db.users.update_one({"id": user["id"]}, {"$set": update_data})
+        result = supabase.table('users').update(update_data).eq('id', user['id']).execute()
     
-    updated_user = await db.users.find_one({"id": user["id"]}, {"password": 0, "_id": 0})
-    return {"success": True, "user": updated_user}
+    updated_user = supabase.table('users').select('*').eq('id', user['id']).single().execute()
+    
+    return {"success": True, "user": updated_user.data}
 
-# ============ PUBLIC ROUTES ============
+@app.get("/api/artist/artworks")
+async def get_artist_artworks(artist: dict = Depends(require_artist)):
+    """Get artist's artworks"""
+    supabase = get_supabase_client()
+    
+    artworks = supabase.table('artworks').select('*').eq('artist_id', artist['id']).execute()
+    
+    return {"artworks": artworks.data or []}
 
-@public_router.get("/stats")
-async def get_public_stats():
-    total_artists = await db.users.count_documents({"role": "artist", "is_approved": True})
-    # Also count featured artists
-    featured_artists = await db.featured_artists.count_documents({})
-    total_artworks = await db.artworks.count_documents({"is_approved": True})
-    total_orders = await db.orders.count_documents({"status": "completed"})
-    total_exhibitions = await db.exhibitions.count_documents({"is_approved": True})
+@app.post("/api/artist/artworks")
+async def create_artwork(artwork: ArtworkCreate, artist: dict = Depends(require_artist)):
+    """Create new artwork"""
+    supabase = get_supabase_client()
     
-    completed = await db.orders.count_documents({"status": "completed"})
-    cancelled = await db.orders.count_documents({"status": "cancelled"})
-    total = completed + cancelled
-    satisfaction_rate = round((completed / total * 100) if total > 0 else 0, 1)
-    
-    return {
-        "total_artists": total_artists + featured_artists,
-        "total_artworks": total_artworks,
-        "completed_projects": total_orders,
-        "total_exhibitions": total_exhibitions,
-        "satisfaction_rate": satisfaction_rate
-    }
-
-@public_router.get("/featured-artists")
-async def get_featured_artists():
-    """Get featured and approved artists for homepage"""
-    # Get featured registered artists first
-    featured = await db.users.find(
-        {"role": "artist", "is_approved": True, "is_active": True, "is_featured": True},
-        {"password": 0, "_id": 0}
-    ).limit(4).to_list(4)
-    
-    # Get contemporary featured artists
-    contemporary = await db.featured_artists.find({}, {"_id": 0}).limit(4).to_list(4)
-    
-    # Get regular approved artists
-    regular = await db.users.find(
-        {"role": "artist", "is_approved": True, "is_active": True, "is_featured": {"$ne": True}},
-        {"password": 0, "_id": 0}
-    ).limit(8 - len(featured) - len(contemporary)).to_list(8)
-    
-    all_artists = featured + contemporary + regular
-    
-    # Add artwork info for registered artists
-    for artist in all_artists:
-        if "artist_type" not in artist:  # Registered artist
-            artwork_count = await db.artworks.count_documents({"artist_id": artist["id"], "is_approved": True})
-            completed_orders = await db.orders.count_documents({"artist_id": artist["id"], "status": "completed"})
-            artist["artwork_count"] = artwork_count
-            artist["completed_projects"] = completed_orders
-            artist["rating"] = 5.0 if completed_orders > 0 else 0
-    
-    return {"artists": all_artists[:8]}
-
-@public_router.get("/exhibitions/active")
-async def get_active_exhibitions():
-    """Get active/upcoming exhibitions"""
-    exhibitions = await db.exhibitions.find(
-        {"is_approved": True, "status": {"$in": ["upcoming", "active"]}},
-        {"_id": 0}
-    ).sort("start_date", 1).to_list(50)
-    
-    for exhibition in exhibitions:
-        artist = await db.users.find_one({"id": exhibition["artist_id"]}, {"name": 1, "_id": 0})
-        exhibition["artist_name"] = artist.get("name", "Unknown") if artist else "Unknown"
-        exhibition["artwork_count"] = len(exhibition.get("artwork_ids", []))
-    
-    return {"exhibitions": exhibitions}
-
-@public_router.get("/exhibitions/archived")
-async def get_archived_exhibitions():
-    """Get archived exhibitions that are still within their free archive period"""
-    now = datetime.now(timezone.utc).isoformat()
-    
-    exhibitions = await db.exhibitions.find(
-        {
-            "is_approved": True,
-            "status": "archived",
-            "$or": [
-                {"archive_expires_at": {"$gt": now}},
-                {"archive_expires_at": None}  # Legacy without expiry
-            ]
-        },
-        {"_id": 0}
-    ).sort("archived_at", -1).to_list(50)
-    
-    for exhibition in exhibitions:
-        artist = await db.users.find_one({"id": exhibition["artist_id"]}, {"name": 1, "_id": 0})
-        exhibition["artist_name"] = artist.get("name", "Unknown") if artist else "Unknown"
-        exhibition["artwork_count"] = len(exhibition.get("artwork_ids", []))
-    
-    return {"exhibitions": exhibitions}
-
-@public_router.get("/exhibitions")
-async def get_public_exhibitions():
-    """Get all approved exhibitions"""
-    exhibitions = await db.exhibitions.find(
-        {"is_approved": True},
-        {"_id": 0}
-    ).sort("created_at", -1).limit(10).to_list(10)
-    
-    for exhibition in exhibitions:
-        artist = await db.users.find_one({"id": exhibition["artist_id"]}, {"name": 1, "_id": 0})
-        exhibition["artist_name"] = artist.get("name", "Unknown") if artist else "Unknown"
-        exhibition["artwork_count"] = len(exhibition.get("artwork_ids", []))
-    
-    return {"exhibitions": exhibitions}
-
-@public_router.get("/featured-artist/{artist_id}")
-async def get_featured_artist_detail(artist_id: str):
-    """Get detailed info about a featured artist"""
-    # Check featured_artists collection first
-    artist = await db.featured_artists.find_one({"id": artist_id}, {"_id": 0})
-    if artist:
-        return {"artist": artist, "type": "contemporary"}
-    
-    # Check registered artists
-    artist = await db.users.find_one(
-        {"id": artist_id, "role": "artist"},
-        {"password": 0, "_id": 0}
-    )
-    if artist:
-        # Get their artworks
-        artworks = await db.artworks.find(
-            {"artist_id": artist_id, "is_approved": True},
-            {"_id": 0}
-        ).sort("views", -1).limit(10).to_list(10)
-        artist["artworks"] = artworks
-        return {"artist": artist, "type": "registered"}
-    
-    raise HTTPException(status_code=404, detail="Artist not found")
-
-# ============ ART CLASS ENQUIRY ROUTES ============
-
-@public_router.post("/art-class-enquiry")
-async def create_art_class_enquiry(
-    enquiry_data: ArtClassEnquiryCreate,
-    user: dict = Depends(require_user)
-):
-    """Submit art class enquiry - one per month per user"""
-    # Check if user already has an active enquiry in the last 30 days
-    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    existing = await db.art_class_enquiries.find_one({
-        "user_id": user["id"],
-        "created_at": {"$gte": thirty_days_ago.isoformat()}
-    })
-    
-    if existing:
-        raise HTTPException(
-            status_code=400, 
-            detail="You can only submit one enquiry per month. Please wait before submitting another."
-        )
-    
-    # Find matching artists based on criteria
-    query = {
-        "role": "artist",
-        "is_approved": True,
-        "is_active": True,
-        "teaching_rate": {"$exists": True, "$ne": None}
+    artwork_data = {
+        "artist_id": artist['id'],
+        "title": artwork.title,
+        "description": artwork.description,
+        "category": artwork.category,
+        "price": artwork.price,
+        "image": artwork.image,
+        "is_approved": False,
+        "is_available": True,
+        "views": 0
     }
     
-    # Filter by class type
-    if enquiry_data.class_type == "online":
-        query["teaches_online"] = True
-    elif enquiry_data.class_type == "offline":
-        query["teaches_offline"] = True
-        # For offline, also filter by location
-        if enquiry_data.user_location:
-            query["location"] = {"$regex": enquiry_data.user_location, "$options": "i"}
+    result = supabase.table('artworks').insert(artwork_data).execute()
     
-    # Filter by budget range for offline classes
-    if enquiry_data.class_type == "offline":
-        budget_ranges = {
-            "250-350": (250, 350),
-            "350-500": (350, 500),
-            "500-1000": (500, 1000)
-        }
-        if enquiry_data.budget_range in budget_ranges:
-            min_rate, max_rate = budget_ranges[enquiry_data.budget_range]
-            query["teaching_rate"] = {"$gte": min_rate, "$lte": max_rate}
-    
-    # Filter by art category
-    if enquiry_data.art_type:
-        query["categories"] = enquiry_data.art_type
-    
-    # Get matching artists, sorted by price (ascending) and limit to 3
-    matching_artists = await db.users.find(
-        query,
-        {"_id": 0, "password": 0}
-    ).sort("teaching_rate", 1).limit(3).to_list(3)
-    
-    matched_ids = [artist["id"] for artist in matching_artists]
-    
-    # Create enquiry
-    enquiry = {
-        "id": str(uuid.uuid4()),
-        "user_id": user["id"],
-        "user_name": user["name"],
-        "user_email": user["email"],
-        "user_location": enquiry_data.user_location or user.get("location", ""),
-        "art_type": enquiry_data.art_type,
-        "skill_level": enquiry_data.skill_level,
-        "duration": enquiry_data.duration,
-        "budget_range": enquiry_data.budget_range,
-        "class_type": enquiry_data.class_type,
-        "status": "matched" if matched_ids else "pending",
-        "matched_artists": matched_ids,
-        "contacts_revealed": [],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
-    }
-    
-    await db.art_class_enquiries.insert_one(enquiry)
-    
-    return {
-        "success": True,
-        "enquiry_id": enquiry["id"],
-        "matched_count": len(matched_ids),
-        "message": f"Found {len(matched_ids)} matching {'artist' if len(matched_ids) == 1 else 'artists'}"
-    }
+    return {"success": True, "artwork": result.data[0]}
 
-@public_router.get("/art-class-matches/{enquiry_id}")
-async def get_art_class_matches(enquiry_id: str, user: dict = Depends(require_user)):
-    """Get matching artists for an enquiry"""
-    enquiry = await db.art_class_enquiries.find_one({"id": enquiry_id, "user_id": user["id"]})
-    
-    if not enquiry:
-        raise HTTPException(status_code=404, detail="Enquiry not found")
-    
-    # Check if expired
-    expires_at = datetime.fromisoformat(enquiry["expires_at"])
-    if datetime.now(timezone.utc) > expires_at:
-        await db.art_class_enquiries.update_one(
-            {"id": enquiry_id},
-            {"$set": {"status": "expired"}}
-        )
-        raise HTTPException(status_code=400, detail="This enquiry has expired")
-    
-    # Get matched artists
-    matched_artists = []
-    for artist_id in enquiry.get("matched_artists", []):
-        artist = await db.users.find_one(
-            {"id": artist_id},
-            {"password": 0, "_id": 0}
-        )
-        if artist:
-            # Get artist's sample artworks
-            artworks = await db.artworks.find(
-                {"artist_id": artist_id, "is_approved": True},
-                {"_id": 0}
-            ).sort("views", -1).limit(3).to_list(3)
-            
-            artist["sample_artworks"] = artworks
-            
-            # Hide contact if not revealed yet
-            if artist_id not in enquiry.get("contacts_revealed", []):
-                artist["phone"] = "***HIDDEN***"
-            
-            matched_artists.append(artist)
-    
-    return {
-        "success": True,
-        "enquiry": {
-            "id": enquiry["id"],
-            "art_type": enquiry["art_type"],
-            "skill_level": enquiry["skill_level"],
-            "class_type": enquiry["class_type"],
-            "budget_range": enquiry.get("budget_range"),
-            "contacts_revealed_count": len(enquiry.get("contacts_revealed", [])),
-            "contacts_remaining": 3 - len(enquiry.get("contacts_revealed", []))
-        },
-        "artists": matched_artists
-    }
-
-@public_router.post("/reveal-contact")
-async def reveal_artist_contact(request: RevealContactRequest, user: dict = Depends(require_user)):
-    """Reveal artist contact - limited to 3 per enquiry"""
-    enquiry = await db.art_class_enquiries.find_one({"id": request.enquiry_id, "user_id": user["id"]})
-    
-    if not enquiry:
-        raise HTTPException(status_code=404, detail="Enquiry not found")
-    
-    # Check limit
-    contacts_revealed = enquiry.get("contacts_revealed", [])
-    if len(contacts_revealed) >= 3:
-        raise HTTPException(status_code=400, detail="You have reached the maximum limit of 3 contacts per enquiry")
-    
-    # Check if artist is in matched list
-    if request.artist_id not in enquiry.get("matched_artists", []):
-        raise HTTPException(status_code=400, detail="Artist not in matched list")
-    
-    # Check if already revealed
-    if request.artist_id in contacts_revealed:
-        raise HTTPException(status_code=400, detail="Contact already revealed")
-    
-    # Reveal contact
-    await db.art_class_enquiries.update_one(
-        {"id": request.enquiry_id},
-        {"$push": {"contacts_revealed": request.artist_id}}
-    )
-    
-    # Get artist contact
-    artist = await db.users.find_one({"id": request.artist_id}, {"phone": 1, "email": 1, "name": 1, "_id": 0})
-    
-    return {
-        "success": True,
-        "artist": artist,
-        "contacts_remaining": 2 - len(contacts_revealed)
-    }
-
-# ============ ADMIN ROUTES ============
-
-@admin_router.get("/dashboard")
-async def admin_dashboard(admin: dict = Depends(require_admin)):
-    pending_artists = await db.users.count_documents({"role": "artist", "is_approved": False})
-    pending_artworks = await db.artworks.count_documents({"is_approved": False})
-    pending_exhibitions = await db.exhibitions.count_documents({"is_approved": False})
-    total_users = await db.users.count_documents({})
-    total_orders = await db.orders.count_documents({})
-    featured_artists = await db.featured_artists.count_documents({})
-    
-    pipeline = [
-        {"$match": {"status": "completed"}},
-        {"$group": {"_id": None, "total": {"$sum": "$commission_fee"}}}
-    ]
-    revenue_result = await db.orders.aggregate(pipeline).to_list(1)
-    total_revenue = revenue_result[0]["total"] if revenue_result else 0
-    
-    return {
-        "pending_artists": pending_artists,
-        "pending_artworks": pending_artworks,
-        "pending_exhibitions": pending_exhibitions,
-        "total_users": total_users,
-        "total_orders": total_orders,
-        "total_revenue": total_revenue,
-        "featured_artists": featured_artists
-    }
-
-@admin_router.get("/pending-artists")
-async def get_pending_artists(admin: dict = Depends(require_admin)):
-    artists = await db.users.find(
-        {"role": "artist", "is_approved": False},
-        {"password": 0, "_id": 0}
-    ).to_list(100)
-    return {"artists": artists}
-
-@admin_router.post("/approve-artist")
-async def approve_artist(request: ArtistApprovalRequest, admin: dict = Depends(require_admin)):
-    result = await db.users.update_one(
-        {"id": request.artist_id, "role": "artist"},
-        {"$set": {"is_approved": request.approved}}
-    )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Artist not found")
-    
-    return {"success": True, "message": f"Artist {'approved' if request.approved else 'rejected'}"}
-
-@admin_router.get("/pending-artworks")
-async def get_pending_artworks(admin: dict = Depends(require_admin)):
-    artworks = await db.artworks.find({"is_approved": False}, {"_id": 0}).to_list(100)
-    
-    for artwork in artworks:
-        artist = await db.users.find_one({"id": artwork["artist_id"]}, {"name": 1, "_id": 0})
-        artwork["artist_name"] = artist.get("name", "Unknown") if artist else "Unknown"
-    
-    return {"artworks": artworks}
-
-@admin_router.post("/approve-artwork")
-async def approve_artwork(request: ArtworkApprovalRequest, admin: dict = Depends(require_admin)):
-    if request.approved:
-        result = await db.artworks.update_one(
-            {"id": request.artwork_id},
-            {"$set": {"is_approved": True}}
-        )
-    else:
-        result = await db.artworks.delete_one({"id": request.artwork_id})
-    
-    if result.modified_count == 0 and getattr(result, 'deleted_count', 0) == 0:
-        raise HTTPException(status_code=404, detail="Artwork not found")
-    
-    return {"success": True, "message": f"Artwork {'approved' if request.approved else 'rejected'}"}
-
-@admin_router.get("/pending-exhibitions")
-async def get_pending_exhibitions(admin: dict = Depends(require_admin)):
-    exhibitions = await db.exhibitions.find({"is_approved": False}, {"_id": 0}).to_list(100)
-    
-    for exhibition in exhibitions:
-        artist = await db.users.find_one({"id": exhibition["artist_id"]}, {"name": 1, "_id": 0})
-        exhibition["artist_name"] = artist.get("name", "Unknown") if artist else "Unknown"
-    
-    return {"exhibitions": exhibitions}
-
-@admin_router.post("/approve-exhibition")
-async def approve_exhibition(request: ExhibitionApprovalRequest, admin: dict = Depends(require_admin)):
-    if request.approved:
-        result = await db.exhibitions.update_one(
-            {"id": request.exhibition_id},
-            {"$set": {"is_approved": True, "status": "upcoming"}}
-        )
-    else:
-        result = await db.exhibitions.delete_one({"id": request.exhibition_id})
-    
-    return {"success": True, "message": f"Exhibition {'approved' if request.approved else 'rejected'}"}
-
-@admin_router.post("/archive-exhibition/{exhibition_id}")
-async def archive_exhibition(exhibition_id: str, admin: dict = Depends(require_admin)):
-    """Archive an exhibition - it stays free in archive for same days paid"""
-    exhibition = await db.exhibitions.find_one({"id": exhibition_id})
-    if not exhibition:
-        raise HTTPException(status_code=404, detail="Exhibition not found")
-    
-    days_paid = exhibition.get("days_paid", 3)
-    archived_at = datetime.now(timezone.utc)
-    archive_expires_at = archived_at + timedelta(days=days_paid)
-    
-    await db.exhibitions.update_one(
-        {"id": exhibition_id},
-        {"$set": {
-            "status": "archived",
-            "archived_at": archived_at.isoformat(),
-            "archive_expires_at": archive_expires_at.isoformat()
-        }}
-    )
-    
-    return {"success": True, "message": f"Exhibition archived. Available in archive for {days_paid} days."}
-
-@admin_router.get("/all-users")
-async def get_all_users(admin: dict = Depends(require_admin)):
-    users = await db.users.find({}, {"password": 0, "_id": 0}).to_list(1000)
-    return {"users": users}
-
-@admin_router.post("/toggle-user-status/{user_id}")
-async def toggle_user_status(user_id: str, admin: dict = Depends(require_admin)):
-    user = await db.users.find_one({"id": user_id})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    new_status = not user.get("is_active", True)
-    await db.users.update_one({"id": user_id}, {"$set": {"is_active": new_status}})
-    
-    return {"success": True, "is_active": new_status}
-
-@admin_router.get("/all-orders")
-async def get_all_orders(admin: dict = Depends(require_admin)):
-    orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    return {"orders": orders}
-
-# ============ ADMIN - FEATURE CONTEMPORARY ARTIST ============
-
-@admin_router.post("/feature-contemporary-artist")
-async def create_featured_artist(artist_data: FeaturedArtistCreate, admin: dict = Depends(require_admin)):
-    """Admin can add a contemporary artist with bio, picture, and artworks"""
-    # Validate bio length (roughly 2500 words = ~15000 characters)
-    if len(artist_data.bio) > 15000:
-        raise HTTPException(status_code=400, detail="Bio exceeds 2500 words limit")
-    
-    # Validate artworks count
-    if len(artist_data.artworks) > 10:
-        raise HTTPException(status_code=400, detail="Maximum 10 artworks allowed")
-    
-    featured_artist = {
-        "id": str(uuid.uuid4()),
-        "name": artist_data.name,
-        "bio": artist_data.bio,
-        "avatar": artist_data.avatar,
-        "categories": artist_data.categories,
-        "location": artist_data.location,
-        "artworks": artist_data.artworks,
-        "artist_type": "contemporary",  # Mark as admin-added
-        "is_featured": True,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "created_by": admin["id"]
-    }
-    
-    await db.featured_artists.insert_one(featured_artist)
-    
-    if "_id" in featured_artist:
-        del featured_artist["_id"]
-    
-    return {"success": True, "artist": featured_artist}
-
-@admin_router.get("/featured-artists")
-async def get_admin_featured_artists(admin: dict = Depends(require_admin)):
-    """Get all featured artists (both contemporary and registered)"""
-    # Contemporary artists
-    contemporary = await db.featured_artists.find({}, {"_id": 0}).to_list(100)
-    
-    # Featured registered artists
-    registered = await db.users.find(
-        {"role": "artist", "is_featured": True},
-        {"password": 0, "_id": 0}
-    ).to_list(100)
-    
-    # Add artworks for registered artists
-    for artist in registered:
-        artworks = await db.artworks.find(
-            {"artist_id": artist["id"], "is_approved": True},
-            {"_id": 0}
-        ).sort("views", -1).limit(10).to_list(10)
-        artist["artworks"] = artworks
-        artist["artist_type"] = "registered"
-    
-    return {
-        "contemporary": contemporary,
-        "registered": registered
-    }
-
-@admin_router.put("/featured-artist/{artist_id}")
-async def update_featured_artist(
-    artist_id: str,
-    artist_data: FeaturedArtistCreate,
-    admin: dict = Depends(require_admin)
-):
-    """Update a contemporary featured artist"""
-    result = await db.featured_artists.update_one(
-        {"id": artist_id},
-        {"$set": {
-            "name": artist_data.name,
-            "bio": artist_data.bio,
-            "avatar": artist_data.avatar,
-            "categories": artist_data.categories,
-            "location": artist_data.location,
-            "artworks": artist_data.artworks,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Featured artist not found")
-    
-    return {"success": True, "message": "Featured artist updated"}
-
-@admin_router.delete("/featured-artist/{artist_id}")
-async def delete_featured_artist(artist_id: str, admin: dict = Depends(require_admin)):
-    """Delete a contemporary featured artist"""
-    result = await db.featured_artists.delete_one({"id": artist_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Featured artist not found")
-    return {"success": True, "message": "Featured artist deleted"}
-
-# ============ ADMIN - FEATURE REGISTERED ARTIST ============
-
-@admin_router.get("/approved-artists")
-async def get_approved_artists(admin: dict = Depends(require_admin)):
-    """Get all approved registered artists for featuring"""
-    artists = await db.users.find(
-        {"role": "artist", "is_approved": True},
-        {"password": 0, "_id": 0}
-    ).to_list(100)
-    
-    # Add artwork info
-    for artist in artists:
-        artworks = await db.artworks.find(
-            {"artist_id": artist["id"], "is_approved": True},
-            {"_id": 0}
-        ).sort("views", -1).limit(10).to_list(10)
-        artist["artworks"] = artworks
-        artist["artwork_count"] = len(artworks)
-    
-    return {"artists": artists}
-
-@admin_router.post("/feature-registered-artist")
-async def feature_registered_artist(
-    request: FeatureRegisteredArtistRequest,
-    admin: dict = Depends(require_admin)
-):
-    """Feature or unfeature a registered artist"""
-    result = await db.users.update_one(
-        {"id": request.artist_id, "role": "artist"},
-        {"$set": {"is_featured": request.featured}}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Artist not found")
-    
-    return {
-        "success": True,
-        "message": f"Artist {'featured' if request.featured else 'unfeatured'}"
-    }
-
-@admin_router.get("/artist-preview/{artist_id}")
-async def get_artist_preview(artist_id: str, admin: dict = Depends(require_admin)):
-    """Get artist details for preview before featuring"""
-    artist = await db.users.find_one(
-        {"id": artist_id, "role": "artist"},
-        {"password": 0, "_id": 0}
-    )
-    
-    if not artist:
-        raise HTTPException(status_code=404, detail="Artist not found")
-    
-    # Get their artworks sorted by views
-    artworks = await db.artworks.find(
-        {"artist_id": artist_id, "is_approved": True},
-        {"_id": 0}
-    ).sort("views", -1).to_list(10)
-    
-    # If no artworks with views, get random
-    if not artworks:
-        artworks = await db.artworks.find(
-            {"artist_id": artist_id, "is_approved": True},
-            {"_id": 0}
-        ).limit(10).to_list(10)
-    
-    artist["artworks"] = artworks
-    
-    return {"artist": artist}
-
-@admin_router.post("/create-sub-admin")
-async def create_sub_admin(request: CreateSubAdminRequest, admin: dict = Depends(require_admin)):
-    """Admin can create sub-admin users (lead_chitrakar or kalakar)"""
-    # Validate role
-    if request.role not in ["lead_chitrakar", "kalakar"]:
-        raise HTTPException(status_code=400, detail="Invalid role. Must be lead_chitrakar or kalakar")
-    
-    # Check if email exists
-    existing = await db.users.find_one({"email": request.email})
-    if existing:
-        raise HTTPException(status_code=409, detail="Email already registered")
-    
-    # Create sub-admin user
-    sub_admin = {
-        "id": str(uuid.uuid4()),
-        "name": request.name,
-        "email": request.email,
-        "password": hash_password(request.password),
-        "role": request.role,
-        "location": request.location,
-        "is_approved": True,
-        "is_active": True,
-        "created_by": admin["id"],
-        "joined_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.users.insert_one(sub_admin)
-    
-    del sub_admin["password"]
-    if "_id" in sub_admin:
-        del sub_admin["_id"]
-    
-    return {
-        "success": True,
-        "message": f"Sub-admin created successfully",
-        "user": sub_admin
-    }
-
-@admin_router.get("/sub-admins")
-async def get_sub_admins(admin: dict = Depends(require_admin)):
-    """Get all sub-admin users"""
-    sub_admins = await db.users.find(
-        {"role": {"$in": ["lead_chitrakar", "kalakar"]}},
-        {"password": 0, "_id": 0}
-    ).to_list(100)
-    return {"sub_admins": sub_admins}
-
-# ============ LEAD CHITRAKAR ROUTES ============
-
-@admin_router.post("/lead-chitrakar/approve-artwork")
-async def lead_chitrakar_approve_artwork(
-    request: ArtworkApprovalRequest,
-    user: dict = Depends(require_lead_chitrakar)
-):
-    """Lead Chitrakar can approve artworks for general paintings/ecommerce"""
-    if request.approved:
-        result = await db.artworks.update_one(
-            {"id": request.artwork_id},
-            {"$set": {"is_approved": True, "approved_by": user["id"], "approved_at": datetime.now(timezone.utc).isoformat()}}
-        )
-    else:
-        result = await db.artworks.delete_one({"id": request.artwork_id})
-    
-    if result.modified_count == 0 and getattr(result, 'deleted_count', 0) == 0:
-        raise HTTPException(status_code=404, detail="Artwork not found")
-    
-    return {"success": True, "message": f"Artwork {'approved' if request.approved else 'rejected'}"}
-
-# ============ KALAKAR ROUTES ============
-
-@admin_router.get("/kalakar/exhibitions-analytics")
-async def kalakar_exhibitions_analytics(user: dict = Depends(require_kalakar)):
-    """Kalakar can view exhibition analytics"""
-    total_exhibitions = await db.exhibitions.count_documents({})
-    active_exhibitions = await db.exhibitions.count_documents({"status": "active"})
-    archived_exhibitions = await db.exhibitions.count_documents({"status": "archived"})
-    
-    # Revenue from exhibitions
-    pipeline = [
-        {"$group": {"_id": None, "total": {"$sum": "$fees"}}}
-    ]
-    revenue_result = await db.exhibitions.aggregate(pipeline).to_list(1)
-    total_revenue = revenue_result[0]["total"] if revenue_result else 0
-    
-    # Voluntary platform fees
-    voluntary_pipeline = [
-        {"$group": {"_id": None, "total": {"$sum": "$voluntary_platform_fee"}}}
-    ]
-    voluntary_result = await db.exhibitions.aggregate(voluntary_pipeline).to_list(1)
-    voluntary_fees = voluntary_result[0]["total"] if voluntary_result else 0
-    
-    return {
-        "total_exhibitions": total_exhibitions,
-        "active_exhibitions": active_exhibitions,
-        "archived_exhibitions": archived_exhibitions,
-        "total_revenue": total_revenue,
-        "voluntary_platform_fees": voluntary_fees
-    }
-
-@admin_router.get("/kalakar/payment-records")
-async def kalakar_payment_records(user: dict = Depends(require_kalakar)):
-    """Kalakar can view payment records"""
-    # Get all exhibitions with payment details
-    exhibitions = await db.exhibitions.find(
-        {"is_approved": True},
-        {"_id": 0, "name": 1, "artist_id": 1, "fees": 1, "voluntary_platform_fee": 1, "exhibition_type": 1, "created_at": 1}
-    ).sort("created_at", -1).to_list(100)
-    
-    # Add artist names
-    for exhibition in exhibitions:
-        artist = await db.users.find_one({"id": exhibition["artist_id"]}, {"name": 1, "_id": 0})
-        exhibition["artist_name"] = artist.get("name", "Unknown") if artist else "Unknown"
-    
-    return {"payment_records": exhibitions}
-
-# ============ ARTIST ROUTES ============
-
-@artist_router.get("/dashboard")
-async def artist_dashboard(artist: dict = Depends(require_artist)):
-    artist_id = artist["id"]
-    
-    total_artworks = await db.artworks.count_documents({"artist_id": artist_id})
-    approved_artworks = await db.artworks.count_documents({"artist_id": artist_id, "is_approved": True})
-    
-    total_exhibitions = await db.exhibitions.count_documents({"artist_id": artist_id})
-    active_exhibitions = await db.exhibitions.count_documents({"artist_id": artist_id, "status": "active", "is_approved": True})
-    
-    total_orders = await db.orders.count_documents({"artist_id": artist_id})
-    completed_orders = await db.orders.count_documents({"artist_id": artist_id, "status": "completed"})
-    in_progress_orders = await db.orders.count_documents({"artist_id": artist_id, "status": "in_progress"})
-    
-    pipeline = [
-        {"$match": {"artist_id": artist_id, "status": "completed"}},
-        {"$group": {"_id": None, "total": {"$sum": "$artist_receives"}}}
-    ]
-    earnings_result = await db.orders.aggregate(pipeline).to_list(1)
-    total_earnings = earnings_result[0]["total"] if earnings_result else 0
-    
-    portfolio_pipeline = [
-        {"$match": {"artist_id": artist_id}},
-        {"$group": {"_id": None, "total": {"$sum": "$price"}}}
-    ]
-    portfolio_result = await db.artworks.aggregate(portfolio_pipeline).to_list(1)
-    portfolio_value = portfolio_result[0]["total"] if portfolio_result else 0
-    
-    views_pipeline = [
-        {"$match": {"artist_id": artist_id}},
-        {"$group": {"_id": None, "total": {"$sum": "$views"}}}
-    ]
-    views_result = await db.exhibitions.aggregate(views_pipeline).to_list(1)
-    total_views = views_result[0]["total"] if views_result else 0
-    
-    return {
-        "total_earnings": total_earnings,
-        "portfolio_views": total_views,
-        "completed_orders": completed_orders,
-        "in_progress_orders": in_progress_orders,
-        "active_exhibitions": active_exhibitions,
-        "total_artworks": total_artworks,
-        "approved_artworks": approved_artworks,
-        "total_exhibitions": total_exhibitions,
-        "portfolio_value": portfolio_value
-    }
-
-@artist_router.get("/portfolio")
-async def get_portfolio(artist: dict = Depends(require_artist)):
-    artworks = await db.artworks.find(
-        {"artist_id": artist["id"]},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    return {"artworks": artworks}
-
-@artist_router.post("/portfolio")
-async def add_artwork(artwork: ArtworkBase, artist: dict = Depends(require_artist)):
-    artwork_dict = artwork.model_dump()
-    artwork_dict["id"] = str(uuid.uuid4())
-    artwork_dict["artist_id"] = artist["id"]
-    artwork_dict["is_approved"] = False
-    artwork_dict["is_for_exhibition"] = False
-    artwork_dict["views"] = 0
-    artwork_dict["created_at"] = datetime.now(timezone.utc).isoformat()
-    
-    await db.artworks.insert_one(artwork_dict)
-    if "_id" in artwork_dict:
-        del artwork_dict["_id"]
-    
-    return {"success": True, "artwork": artwork_dict, "message": "Artwork submitted for approval"}
-
-@artist_router.put("/portfolio/{artwork_id}")
-async def update_artwork(artwork_id: str, artwork: ArtworkBase, artist: dict = Depends(require_artist)):
-    result = await db.artworks.update_one(
-        {"id": artwork_id, "artist_id": artist["id"]},
-        {"$set": artwork.model_dump()}
-    )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Artwork not found")
-    return {"success": True, "message": "Artwork updated"}
-
-@artist_router.delete("/portfolio/{artwork_id}")
-async def delete_artwork(artwork_id: str, artist: dict = Depends(require_artist)):
-    result = await db.artworks.delete_one({"id": artwork_id, "artist_id": artist["id"]})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Artwork not found")
-    return {"success": True, "message": "Artwork deleted"}
-
-@artist_router.get("/orders")
-async def get_artist_orders(artist: dict = Depends(require_artist)):
-    orders = await db.orders.find(
-        {"artist_id": artist["id"]},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    
-    total_earnings = sum(o.get("artist_receives", 0) for o in orders if o.get("status") == "completed")
-    
-    return {"orders": orders, "total_earnings": total_earnings}
-
-@artist_router.put("/orders/{order_id}/status")
-async def update_order_status(order_id: str, status: str, artist: dict = Depends(require_artist)):
-    valid_statuses = ["in_progress", "pending_approval", "completed"]
-    if status not in valid_statuses:
-        raise HTTPException(status_code=400, detail="Invalid status")
-    
-    result = await db.orders.update_one(
-        {"id": order_id, "artist_id": artist["id"]},
-        {"$set": {"status": status}}
-    )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return {"success": True, "message": "Order status updated"}
-
-@artist_router.get("/exhibitions")
+@app.get("/api/artist/exhibitions")
 async def get_artist_exhibitions(artist: dict = Depends(require_artist)):
-    exhibitions = await db.exhibitions.find(
-        {"artist_id": artist["id"]},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    return {"exhibitions": exhibitions}
+    """Get artist's exhibitions"""
+    supabase = get_supabase_client()
+    
+    exhibitions = supabase.table('exhibitions').select('*').eq('artist_id', artist['id']).execute()
+    
+    return {"exhibitions": exhibitions.data or []}
 
-@artist_router.post("/exhibitions")
-async def create_exhibition(
-    name: str = Body(...),
-    description: str = Body(""),
-    start_date: str = Body(...),
-    end_date: str = Body(...),
-    artwork_ids: List[str] = Body([]),
-    exhibition_type: str = Body("Kalakanksh"),  # Kalakanksh, Kalahruday, KalaDeeksh
-    voluntary_platform_fee: float = Body(0),
-    artist: dict = Depends(require_artist)
-):
-    """
-    Create exhibition with pricing tiers:
-    - Kalakanksh: ₹1000, 3 days active+archived, 10 artworks base (max 15 with ₹100/extra)
-    - Kalahruday: ₹2000, 5 days active+archived, 20 artworks
-    - KalaDeeksh: ₹3000, 10 days active+archived, 30 artworks
-    """
-    # Define exhibition types and pricing
+@app.post("/api/artist/exhibitions")
+async def create_exhibition(exhibition: ExhibitionCreate, artist: dict = Depends(require_artist)):
+    """Create new exhibition"""
+    supabase = get_supabase_client()
+    
+    # Exhibition pricing config
     exhibition_config = {
         "Kalakanksh": {"base_fee": 1000, "days": 3, "max_base_artworks": 10, "max_total_artworks": 15, "extra_artwork_fee": 100},
         "Kalahruday": {"base_fee": 2000, "days": 5, "max_base_artworks": 20, "max_total_artworks": 20, "extra_artwork_fee": 0},
         "KalaDeeksh": {"base_fee": 3000, "days": 10, "max_base_artworks": 30, "max_total_artworks": 30, "extra_artwork_fee": 0}
     }
     
-    if exhibition_type not in exhibition_config:
-        raise HTTPException(status_code=400, detail="Invalid exhibition type")
+    config = exhibition_config.get(exhibition.exhibition_type, exhibition_config["Kalakanksh"])
+    num_artworks = len(exhibition.artwork_ids)
     
-    config = exhibition_config[exhibition_type]
-    num_artworks = len(artwork_ids)
-    
-    # Validate artwork count
     if num_artworks > config["max_total_artworks"]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"{exhibition_type} allows maximum {config['max_total_artworks']} artworks"
-        )
+        raise HTTPException(status_code=400, detail=f"{exhibition.exhibition_type} allows maximum {config['max_total_artworks']} artworks")
     
-    # Calculate additional artwork fees (only for Kalakanksh)
     additional_artworks = 0
     additional_artwork_fee = 0
-    if exhibition_type == "Kalakanksh" and num_artworks > config["max_base_artworks"]:
+    if exhibition.exhibition_type == "Kalakanksh" and num_artworks > config["max_base_artworks"]:
         additional_artworks = num_artworks - config["max_base_artworks"]
         additional_artwork_fee = additional_artworks * config["extra_artwork_fee"]
     
     total_fees = config["base_fee"] + additional_artwork_fee
     
-    exhibition = {
-        "id": str(uuid.uuid4()),
-        "artist_id": artist["id"],
-        "name": name,
-        "description": description,
-        "start_date": start_date,
-        "end_date": end_date,
-        "artwork_ids": artwork_ids,
+    exhibition_data = {
+        "artist_id": artist['id'],
+        "name": exhibition.name,
+        "description": exhibition.description,
+        "start_date": exhibition.start_date,
+        "end_date": exhibition.end_date,
+        "artwork_ids": exhibition.artwork_ids,
         "status": "upcoming",
         "views": 0,
-        "exhibition_type": exhibition_type,
+        "exhibition_type": exhibition.exhibition_type,
         "fees": total_fees,
         "days_paid": config["days"],
         "max_artworks": config["max_base_artworks"],
         "additional_artworks": additional_artworks,
         "additional_artwork_fee": additional_artwork_fee,
-        "voluntary_platform_fee": voluntary_platform_fee,
-        "is_approved": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "voluntary_platform_fee": exhibition.voluntary_platform_fee,
+        "is_approved": False
     }
     
-    await db.exhibitions.insert_one(exhibition)
+    result = supabase.table('exhibitions').insert(exhibition_data).execute()
     
-    return {
-        "success": True,
-        "exhibition": exhibition,
-        "message": f"Exhibition submitted for approval. Total fee: ₹{total_fees}"
-    }
+    return {"success": True, "exhibition": result.data[0], "message": f"Exhibition submitted. Total fee: ₹{total_fees}"}
 
-# ============ ROOT ROUTE ============
-
-@api_router.get("/")
-async def root():
-    return {"message": "ChitraKalakar API", "version": "1.0.0"}
-
-# Include all routers
-api_router.include_router(auth_router)
-api_router.include_router(admin_router)
-api_router.include_router(artist_router)
-api_router.include_router(public_router)
-app.include_router(api_router)
-
-# CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
