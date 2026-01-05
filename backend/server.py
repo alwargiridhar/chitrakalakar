@@ -328,7 +328,7 @@ async def get_me(user: dict = Depends(require_user)):
 
 @auth_router.put("/profile")
 async def update_profile(updates: ProfileUpdateRequest, user: dict = Depends(require_user)):
-    """Update user profile including categories"""
+    """Update user profile including categories and teaching info"""
     update_data = {}
     if updates.name is not None:
         update_data["name"] = updates.name
@@ -343,6 +343,14 @@ async def update_profile(updates: ProfileUpdateRequest, user: dict = Depends(req
             update_data["category"] = updates.categories[0]
     if updates.avatar is not None:
         update_data["avatar"] = updates.avatar
+    if updates.phone is not None:
+        update_data["phone"] = updates.phone
+    if updates.teaching_rate is not None:
+        update_data["teaching_rate"] = updates.teaching_rate
+    if updates.teaches_online is not None:
+        update_data["teaches_online"] = updates.teaches_online
+    if updates.teaches_offline is not None:
+        update_data["teaches_offline"] = updates.teaches_offline
     
     if update_data:
         await db.users.update_one({"id": user["id"]}, {"$set": update_data})
