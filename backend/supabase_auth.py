@@ -98,7 +98,7 @@ async def require_kalakar(credentials: HTTPAuthorizationCredentials = Security(s
         raise HTTPException(status_code=403, detail="Kalakar access required")
     return user
 
-async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Security(security, auto_error=False)) -> Optional[dict]:
+async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(lambda: None)) -> Optional[dict]:
     """Get current user if authenticated, otherwise return None"""
     if not credentials:
         return None
