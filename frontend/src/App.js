@@ -1831,7 +1831,20 @@ function ArtistDashboard() {
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900">My Profile</h2>
               <button
-                onClick={() => setShowEditProfile(true)}
+                onClick={() => {
+                  setProfileForm({
+                    name: user?.name || '',
+                    bio: user?.bio || '',
+                    location: user?.location || '',
+                    categories: user?.categories || [],
+                    avatar: user?.avatar || '',
+                    phone: user?.phone || '',
+                    teaching_rate: user?.teaching_rate || null,
+                    teaches_online: user?.teaches_online || false,
+                    teaches_offline: user?.teaches_offline || false
+                  });
+                  setShowEditProfile(true);
+                }}
                 className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
               >
                 Edit Profile
