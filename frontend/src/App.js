@@ -103,6 +103,13 @@ function NavBar() {
                 </div>
               )}
             </div>
+
+            {/* Links after Exhibitions */}
+            {navLinksAfterExhibitions.map((link) => (
+              <Link key={link.href} to={link.href} className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           <div className="hidden md:flex items-center gap-3">
