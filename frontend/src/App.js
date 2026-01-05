@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { publicAPI, adminAPI, artistAPI, authAPI } from './services/api';
 import { BRAND_NAME, BRAND_TAGLINE, ART_CATEGORIES, NAVIGATION_LINKS } from './utils/branding';
 import ArtClassesPage from './pages/ArtClassesPage';
+import ImageUpload from './components/ImageUpload';
+import { BUCKETS } from './lib/supabase';
 import './App.css';
 
 // ============ NAVBAR COMPONENT ============
