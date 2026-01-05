@@ -114,6 +114,23 @@ export const adminAPI = {
     method: 'POST',
     body: JSON.stringify({ artist_id: artistId, featured }),
   }),
+  
+  // Sub-Admin Management
+  createSubAdmin: (data) => apiCall('/admin/create-sub-admin', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getSubAdmins: () => apiCall('/admin/sub-admins'),
+  
+  // Lead Chitrakar
+  leadChitrakarApproveArtwork: (artworkId, approved) => apiCall('/admin/lead-chitrakar/approve-artwork', {
+    method: 'POST',
+    body: JSON.stringify({ artwork_id: artworkId, approved }),
+  }),
+  
+  // Kalakar
+  kalakarGetExhibitionAnalytics: () => apiCall('/admin/kalakar/exhibitions-analytics'),
+  kalakarGetPaymentRecords: () => apiCall('/admin/kalakar/payment-records'),
 };
 
 // Artist APIs
