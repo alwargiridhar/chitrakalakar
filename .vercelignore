@@ -1,0 +1,18 @@
+# Backend files
+backend/
+scripts/
+tests/
+
+# Development files
+node_modules/
+*.log
+.env.local
+.env.development
+.DS_Store
+
+# Documentation
+*.md
+!frontend/README.md
+
+# Test files
+test_result.md
