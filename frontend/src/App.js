@@ -1359,6 +1359,177 @@ function AdminDashboard() {
           </div>
         )}
 
+        {/* Sub-Admins Tab */}
+        {activeTab === 'subadmins' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Sub-Admin Management</h2>
+                  <p className="text-sm text-gray-500 mt-1">Create and manage Lead Chitrakar and Kalakar roles</p>
+                </div>
+                <button
+                  onClick={() => setShowCreateSubAdmin(true)}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                >
+                  + Create Sub-Admin
+                </button>
+              </div>
+
+              <div className="p-6">
+                {subAdmins.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <span className="text-5xl block mb-4">👤</span>
+                    <p>No sub-admins created yet</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {subAdmins.map((subAdmin) => (
+                      <div key={subAdmin.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">{subAdmin.name}</h3>
+                            <p className="text-sm text-gray-500">{subAdmin.email}</p>
+                            {subAdmin.location && (
+                              <p className="text-xs text-gray-400 mt-1">📍 {subAdmin.location}</p>
+                            )}
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            subAdmin.role === 'lead_chitrakar' 
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {subAdmin.role === 'lead_chitrakar' ? 'Lead Chitrakar' : 'Kalakar'}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm text-gray-600">
+                          {subAdmin.role === 'lead_chitrakar' && (
+                            <p>✓ Can approve artworks for quality control</p>
+                          )}
+                          {subAdmin.role === 'kalakar' && (
+                            <>
+                              <p>✓ Can view exhibition analytics</p>
+                              <p>✓ Can manage payment records</p>
+                            </>
+                          )}
+                          <p className="text-xs text-gray-400 pt-2">
+                            Created: {new Date(subAdmin.joined_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Sub-Admin Modal */}
+        {showCreateSubAdmin && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-md w-full">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-900">Create Sub-Admin</h2>
+                <button onClick={() => setShowCreateSubAdmin(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    value={subAdminForm.name}
+                    onChange={(e) => setSubAdminForm({ ...subAdminForm, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                  <input
+                    type="email"
+                    value={subAdminForm.email}
+                    onChange={(e) => setSubAdminForm({ ...subAdminForm, email: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    placeholder="john@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                  <input
+                    type="password"
+                    value={subAdminForm.password}
+                    onChange={(e) => setSubAdminForm({ ...subAdminForm, password: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                  <select
+                    value={subAdminForm.role}
+                    onChange={(e) => setSubAdminForm({ ...subAdminForm, role: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="lead_chitrakar">Lead Chitrakar (Artwork Quality Control)</option>
+                    <option value="kalakar">Kalakar (Exhibition & Payment Management)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <input
+                    type="text"
+                    value={subAdminForm.location}
+                    onChange={(e) => setSubAdminForm({ ...subAdminForm, location: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    placeholder="City, Country"
+                  />
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                  <p className="font-semibold mb-1">Role Permissions:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    {subAdminForm.role === 'lead_chitrakar' ? (
+                      <>
+                        <li>Review and approve/reject artworks</li>
+                        <li>Maintain platform quality standards</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>View exhibition analytics</li>
+                        <li>Manage payment records</li>
+                        <li>Track voluntary platform fees</li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateSubAdmin(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateSubAdmin}
+                    className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                  >
+                    Create Sub-Admin
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Add Contemporary Artist Modal */}
         {showAddContemporary && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
