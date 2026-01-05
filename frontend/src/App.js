@@ -2663,6 +2663,8 @@ function App() {
           <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
           <Route path="/admin" element={<><NavBar /><AdminDashboard /></>} />
           <Route path="/dashboard" element={<><NavBar /><ArtistDashboard /></>} />
+          <Route path="/lead-chitrakar" element={<><NavBar /><LeadChitrakarDashboard /></>} />
+          <Route path="/kalakar" element={<><NavBar /><KalakarDashboard /></>} />
           <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
         </Routes>
       </BrowserRouter>
