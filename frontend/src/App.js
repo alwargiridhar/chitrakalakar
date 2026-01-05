@@ -167,6 +167,11 @@ function NavBar() {
             <Link to="/exhibitions/archived" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md">
               📁 Archived Exhibitions
             </Link>
+            {navLinksAfterExhibitions.map((link) => (
+              <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+                {link.label}
+              </Link>
+            ))}
             <div className="pt-2 space-y-2 border-t border-gray-200">
               {isAuthenticated ? (
                 <>
