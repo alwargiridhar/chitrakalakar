@@ -71,23 +71,41 @@ export function AuthProvider({ children }) {
   /* ---------------------------------------------
    * SIGNUP (AUTH ONLY — DB handled by trigger)
    * --------------------------------------------- */
-  const signup = async ({ email, password, role = 'user' }) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { role },
-      },
-    });
+const signup = async ({
+  name,
+  email,
+  password,
+  location,
+  categories,
+  role = 'user',
+}) => {
+  // 1. Create auth user
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { role },
+    },
+  });
 
-    if (error) {
-      console.error('Signup error:', error);
-      throw error;
-    }
+  if (error) throw error;
 
-    // profile row is auto-created by DB trigger
-    return data.user;
-  };
+  // 2. Update profile with extra details
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({
+      full_name: name,
+      location,
+      categories,
+    })
+    .eq('id', data.user.id);
+
+  if (profileError) throw profileError;
+
+  await fetchUserProfile(data.user.id);
+  return true;
+};
+
 
   /* ---------------------------------------------
    * LOGIN
@@ -124,29 +142,26 @@ export function AuthProvider({ children }) {
   /* ---------------------------------------------
    * UPDATE PROFILE (ONLY EXISTING COLUMNS)
    * --------------------------------------------- */
-  const updateProfile = async (updates) => {
-    if (!user) throw new Error('Not authenticated');
+const updateProfile = async ({ name, location, categories }) => {
+  if (!user) throw new Error('Not authenticated');
 
-    const allowedUpdates = {
-      email: updates.email,
-      role: updates.role,
-    };
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      full_name: name,
+      location,
+      categories,
+    })
+    .eq('id', user.id)
+    .select()
+    .maybeSingle();
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(allowedUpdates)
-      .eq('id', user.id)
-      .select()
-      .maybeSingle();
+  if (error) throw error;
 
-    if (error) {
-      console.error('Profile update error:', error);
-      throw error;
-    }
+  setUser(data);
+  return data;
+};
 
-    setUser(data);
-    return data;
-  };
 
   /* ---------------------------------------------
    * TOKEN HELPER
