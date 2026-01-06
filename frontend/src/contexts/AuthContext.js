@@ -112,7 +112,7 @@ const signup = async ({
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
-      full_name: name,
+      name,
       location,
       categories,
       is_approved: role === 'artist' ? false : true,
@@ -138,8 +138,6 @@ const signup = async ({
       console.error('Login error:', error);
       throw error;
     }
-
-    await fetchUserProfile(data.user.id);
     return true;
   };
 
@@ -166,7 +164,7 @@ const updateProfile = async ({ name, location, categories }) => {
   const { data, error } = await supabase
     .from('profiles')
     .update({
-      full_name: name,
+      name,
       location,
       categories,
     })
@@ -200,7 +198,7 @@ const updateProfile = async ({ name, location, categories }) => {
         logout,
         updateProfile,
         getAccessToken,
-        isAuthenticated: !!user,
+        isAuthenticated: !!session,
         isAdmin: user?.role === 'admin',
         isArtist: user?.role === 'artist',
         isLeadChitrakar: user?.role === 'lead_chitrakar',
