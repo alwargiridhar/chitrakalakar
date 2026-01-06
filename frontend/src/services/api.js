@@ -1,29 +1,12 @@
 import { supabase } from '../lib/supabase';
 
-// =======================
-// ADMIN API (Supabase)
-// =======================
-export const adminAPI = {
-  getPendingArtists: async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'artist')
-      .eq('is_approved', false);
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
-    if (error) throw error;
-    return { artists: data };
-  },
-
-  approveArtist: async (artistId, approved) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_approved: approved })
-      .eq('id', artistId);
-
-    if (error) throw error;
-    return true;
-  },
+// Get auth token from Supabase session
+const getToken = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token;
 };
 
 // Helper for API calls
