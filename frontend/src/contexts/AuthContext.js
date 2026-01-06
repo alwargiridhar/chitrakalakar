@@ -108,7 +108,12 @@ const signup = async ({
 
   if (error) throw error;
 
-  // 2️⃣ Update profile (trigger already created the row)
+  // 🚨 IMPORTANT: user can be null if email confirmation is ON
+  if (!data.user) {
+    // Do NOT touch profiles yet
+    return true;
+  }
+
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
@@ -123,7 +128,6 @@ const signup = async ({
 
   return true;
 };
-
 
   /* ---------------------------------------------
    * LOGIN
