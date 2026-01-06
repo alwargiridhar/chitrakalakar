@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
   const fetchUserProfile = async (userId) => {
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
 
       // 2. Create user profile in database
       const { data: profileData, error: profileError } = await supabase
-        .from('users')
+        .from('profiles')
         .insert([
           {
             id: authData.user.id,
@@ -107,7 +107,7 @@ export function AuthProvider({ children }) {
 
       // Fetch user profile
       await fetchUserProfile(data.user.id);
-      return user;
+      return true;
     } catch (error) {
       console.error('Login error:', error);
       throw new Error(error.message || 'Failed to login');
@@ -131,7 +131,7 @@ export function AuthProvider({ children }) {
       if (!user) throw new Error('No user logged in');
 
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .update(updates)
         .eq('id', user.id)
         .select()
