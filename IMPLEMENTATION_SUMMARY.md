@@ -296,7 +296,7 @@ CORS_ORIGINS=*
 
 ### Frontend (.env)
 ```
-REACT_APP_BACKEND_URL=https://previewmode-5.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://file-breakdown.preview.emergentagent.com
 WDS_SOCKET_PORT=443
 ENABLE_HEALTH_CHECK=false
 ```
@@ -400,7 +400,7 @@ db.art_class_enquiries.createIndex({ "expires_at": 1 }); // For TTL
 ## 📞 Support
 
 For questions or issues:
-- Backend API docs: `https://previewmode-5.preview.emergentagent.com/api/docs`
+- Backend API docs: `https://file-breakdown.preview.emergentagent.com/api/docs`
 - Admin login: `admin@chitrakalakar.com` / `admin123`
 
 ---
