@@ -103,7 +103,7 @@ function SignupPage() {
               >
                 <span className="text-2xl">🎨</span>
                 <div>
-                  <div className="font-semibold">I'm an Artist</div>
+                  <div className="font-semibold">I am an Artist</div>
                   <div className="text-xs opacity-90">
                     Sell your artworks (requires approval)
                   </div>

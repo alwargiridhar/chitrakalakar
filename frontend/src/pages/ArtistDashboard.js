@@ -136,7 +136,7 @@ function ArtistDashboard() {
           <span className="text-6xl mb-4 block">⏳</span>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Pending Approval</h2>
           <p className="text-gray-600 mb-6">
-            Your artist account is pending admin approval. You'll be notified once approved.
+            Your artist account is pending admin approval. You will be notified once approved.
           </p>
           <button
             onClick={() => navigate('/')}
@@ -256,7 +256,7 @@ function ArtistDashboard() {
             <div className="p-6">
               {artworks.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 mb-4">No artworks yet. Add your first artwork!</p>
+                  <p className="text-gray-500 mb-4">No artworks yet. Add your first artwork.</p>
                   <button
                     onClick={() => setShowAddArtwork(true)}
                     className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
