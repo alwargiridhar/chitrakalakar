@@ -128,18 +128,17 @@ const signup = async ({
   /* ---------------------------------------------
    * LOGIN
    * --------------------------------------------- */
-  const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+ const login = async (email, password) => {
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-    return true;
-  };
+  if (error) throw error;
+
+  // auth listener will handle everything
+  return true;
+};
 
   /* ---------------------------------------------
    * LOGOUT
