@@ -75,11 +75,11 @@ const signup = async ({
   name,
   email,
   password,
-  location,
-  categories,
   role = 'user',
+  location,
+  categories = [],
 }) => {
-  // 1. Create auth user
+  // 1️⃣ Create auth user
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -90,19 +90,19 @@ const signup = async ({
 
   if (error) throw error;
 
-  // 2. Update profile with extra details
+  // 2️⃣ Update profile (trigger already created the row)
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
       full_name: name,
       location,
       categories,
+      is_approved: role === 'artist' ? false : true,
     })
     .eq('id', data.user.id);
 
   if (profileError) throw profileError;
 
-  await fetchUserProfile(data.user.id);
   return true;
 };
 
