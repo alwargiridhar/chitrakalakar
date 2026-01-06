@@ -4,186 +4,135 @@ import { supabase } from '../lib/supabase';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);        // profile
-  const [session, setSession] = useState(null); // auth session
+  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
- /* ---------------------------------------------
- * INIT + AUTH STATE LISTENER (SINGLE SOURCE)
- * --------------------------------------------- */
-useEffect(() => {
-  let mounted = true;
-
-  const handleSession = async (session) => {
-    if (!mounted) return;
-
-    setSession(session);
-
-    if (!session?.user) {
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Profile fetch error:', error);
-      setUser(null);
-    } else {
-      setUser(data);
-    }
-
-    setIsLoading(false);
-  };
-
-  // 1️⃣ Initial session load
-  supabase.auth.getSession().then(({ data }) => {
-    handleSession(data.session);
-  });
-
-  // 2️⃣ Auth state change listener
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    handleSession(session);
-  });
-
-  return () => {
-    mounted = false;
-    subscription.unsubscribe();
-  };
-}, []);
-
   /* ---------------------------------------------
-   * FETCH PROFILE (SAFE)
+   * AUTH STATE (SINGLE SOURCE OF TRUTH)
    * --------------------------------------------- */
-  const fetchUserProfile = async (userId) => {
-    try {
+  useEffect(() => {
+    let mounted = true;
+
+    const handleSession = async (session) => {
+      if (!mounted) return;
+
+      setSession(session);
+
+      if (!session?.user) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', session.user.id)
         .maybeSingle();
 
       if (error) {
         console.error('Profile fetch error:', error);
         setUser(null);
-        return;
+      } else {
+        setUser(data);
       }
 
-      // Can be null on first login → profile completion page
-      setUser(data ?? null);
-    } catch (err) {
-      console.error('Unexpected profile error:', err);
-      setUser(null);
-    } finally {
       setIsLoading(false);
-    }
-  };
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      handleSession(data.session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleSession(session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   /* ---------------------------------------------
-   * SIGNUP (AUTH ONLY — DB handled by trigger)
+   * SIGNUP
    * --------------------------------------------- */
-const signup = async ({
-  name,
-  email,
-  password,
-  role = 'user',
-  location,
-  categories = [],
-}) => {
-  // 1️⃣ Create auth user
-  const { data, error } = await supabase.auth.signUp({
+  const signup = async ({
+    name,
     email,
     password,
-    options: {
-      data: { role },
-    },
-  });
+    role = 'user',
+    location,
+    categories = [],
+  }) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { role },
+      },
+    });
 
-  if (error) throw error;
+    if (error) throw error;
 
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: name,
+        location,
+        categories,
+        is_approved: role === 'artist' ? false : true,
+      })
+      .eq('id', data.user.id);
 
-  // user ALWAYS exists now
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({
-      name,
-      location,
-      categories,
-      is_approved: role === 'artist' ? false : true,
-    })
-    .eq('id', data.user.id);
-
-  if (profileError) throw profileError;
-
-  return true;
-};
+    if (profileError) throw profileError;
+  };
 
   /* ---------------------------------------------
    * LOGIN
    * --------------------------------------------- */
- const login = async (email, password) => {
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const login = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) throw error;
-
-  // auth listener will handle everything
-  return true;
-};
+    if (error) throw error;
+  };
 
   /* ---------------------------------------------
    * LOGOUT
    * --------------------------------------------- */
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Logout error:', error);
-      throw error;
-    }
-
+    await supabase.auth.signOut();
     setUser(null);
     setSession(null);
   };
 
   /* ---------------------------------------------
-   * UPDATE PROFILE (ONLY EXISTING COLUMNS)
+   * UPDATE PROFILE
    * --------------------------------------------- */
-const updateProfile = async ({ name, location, categories }) => {
-  if (!user) throw new Error('Not authenticated');
+  const updateProfile = async ({ name, location, categories }) => {
+    if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({
-      name,
-      location,
-      categories,
-    })
-    .eq('id', user.id)
-    .select()
-    .maybeSingle();
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: name,
+        location,
+        categories,
+      })
+      .eq('id', user.id)
+      .select()
+      .maybeSingle();
 
-  if (error) throw error;
+    if (error) throw error;
 
-  setUser(data);
-  return data;
-};
-
-
-  /* ---------------------------------------------
-   * TOKEN HELPER
-   * --------------------------------------------- */
-  const getAccessToken = async () => {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token ?? null;
+    setUser(data);
+    return data;
   };
 
   return (
@@ -196,8 +145,7 @@ const updateProfile = async ({ name, location, categories }) => {
         login,
         logout,
         updateProfile,
-        getAccessToken,
-        isAuthenticated: !!session,
+        isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
         isArtist: user?.role === 'artist',
         isLeadChitrakar: user?.role === 'lead_chitrakar',
@@ -209,9 +157,6 @@ const updateProfile = async ({ name, location, categories }) => {
   );
 }
 
-/* ---------------------------------------------
- * HOOK
- * --------------------------------------------- */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
