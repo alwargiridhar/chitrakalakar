@@ -33,23 +33,36 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+ const fetchUserProfile = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle(); // ✅ IMPORTANT
 
-      if (error) throw error;
-      setUser(data);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
+    if (error) {
+      console.error('Profile fetch error:', error);
       setUser(null);
-    } finally {
-      setIsLoading(false);
+      return;
     }
-  };
+
+    // data can be null if profile not created yet
+    if (!data) {
+      console.warn('Profile not found yet for user:', userId);
+      setUser(null);
+      return;
+    }
+
+    setUser(data);
+  } catch (err) {
+    console.error('Unexpected error fetching profile:', err);
+    setUser(null);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const signup = async ({ name, email, password, role, categories, location }) => {
     try {
@@ -142,8 +155,8 @@ export function AuthProvider({ children }) {
       setUser(data);
       return data;
     } catch (error) {
-      console.error('Update profile error:', error);
-      throw new Error(error.message || 'Failed to update profile');
+      console.error(error);
+      throw Error;
     }
   };
 
