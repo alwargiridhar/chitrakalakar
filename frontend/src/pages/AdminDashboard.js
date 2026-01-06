@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ddddaimport React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { adminAPI } from '../services/api';
@@ -264,11 +264,18 @@ function AdminDashboard() {
                   {pendingArtists.map((artist) => (
                     <div key={artist.id} className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-gray-900">{artist.name}</h3>
-                        <p className="text-sm text-gray-500">{artist.email}</p>
-                        <p className="text-sm text-orange-500">
-                          {(artist.categories || [artist.category]).filter(Boolean).join(', ') || 'No category'} • {artist.location || 'No location'}
+                        <h3 className="font-semibold text-gray-900">
+                          {artist.full_name || 'Unnamed Artist'}
+                        </h3>
+
+                        <p className="text-sm text-gray-500">
+                          {artist.email}
                         </p>
+
+                        <p className="text-sm text-orange-500">
+                          {(artist.categories || []).join(', ') || 'No category'} • {artist.location || 'No location'}
+                        </p>
+
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => handleApproveArtist(artist.id, true)} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Approve</button>
