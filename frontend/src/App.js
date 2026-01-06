@@ -637,7 +637,6 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
 
 // ============ SIGNUP PAGE ============
 
@@ -803,7 +802,6 @@ function SignupPage() {
   );
 }
 
-export default SignupPage;
 
 // ============ ADMIN DASHBOARD ============
 // ============ ADMIN DASHBOARD ============
@@ -2832,5 +2830,5 @@ function App() {
     </AuthProvider>
   );
 }
-
+export { LoginPage, SignupPage, AdminDashboard };
 export default App;
