@@ -8,38 +8,56 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null); // auth session
   const [isLoading, setIsLoading] = useState(true);
 
-  /* ---------------------------------------------
-   * INIT + AUTH STATE LISTENER
-   * --------------------------------------------- */
-  useEffect(() => {
-    const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
+ /* ---------------------------------------------
+ * INIT + AUTH STATE LISTENER (SINGLE SOURCE)
+ * --------------------------------------------- */
+useEffect(() => {
+  let mounted = true;
 
-      if (data.session?.user) {
-        await fetchUserProfile(data.session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    };
+  const handleSession = async (session) => {
+    if (!mounted) return;
 
-    init();
+    setSession(session);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
+    if (!session?.user) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
 
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setIsLoading(false);
-      }
-    });
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle();
 
-    return () => subscription.unsubscribe();
-  }, []);
+    if (error) {
+      console.error('Profile fetch error:', error);
+      setUser(null);
+    } else {
+      setUser(data);
+    }
+
+    setIsLoading(false);
+  };
+
+  // 1️⃣ Initial session load
+  supabase.auth.getSession().then(({ data }) => {
+    handleSession(data.session);
+  });
+
+  // 2️⃣ Auth state change listener
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    handleSession(session);
+  });
+
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
 
   /* ---------------------------------------------
    * FETCH PROFILE (SAFE)
