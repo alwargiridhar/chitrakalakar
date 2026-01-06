@@ -585,19 +585,20 @@ const [email, setEmail] = useState('');
   }, [isAuthenticated, isAdmin, navigate]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
 
-    try {
-      await login(email, password);
-      // ❌ DO NOT navigate here
-    } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  try {
+    await login(email, password);
+    // ✅ navigation happens via useEffect
+  } catch (err) {
+    setError(err.message || 'Login failed. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-gray-50 via-white to-orange-50 flex items-center justify-center py-12 px-4">
@@ -721,24 +722,24 @@ function SignupPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
 
-    try {
-      await signup({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        role: formData.role,
-        location: formData.location,
-        categories: formData.categories,
-      });
-      // ❌ NO navigate here
-    } catch (err) {
-      setError(err.message || 'Signup failed');
-    } finally {
-      setIsLoading(false);
+  try {
+    await signup({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
+      location: formData.location,
+      categories: formData.categories,
+    });
+    // ✅ navigation happens via auth state
+  } catch (err) {
+    setError(err.message || 'Signup failed');
+  } finally {
+    setIsLoading(false);
     }
   };
 
