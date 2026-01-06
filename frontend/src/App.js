@@ -847,9 +847,11 @@ function SignupPage() {
 export default SignupPage;
 
 // ============ ADMIN DASHBOARD ============
+// ============ ADMIN DASHBOARD ============
 function AdminDashboard() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState('overview');
   const [dashboardData, setDashboardData] = useState(null);
   const [pendingArtists, setPendingArtists] = useState([]);
@@ -860,29 +862,62 @@ function AdminDashboard() {
   const [featuredArtists, setFeaturedArtists] = useState({ contemporary: [], registered: [] });
   const [subAdmins, setSubAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Contemporary Artist Form
+
+  // Forms
   const [showAddContemporary, setShowAddContemporary] = useState(false);
-  const [contemporaryForm, setContemporaryForm] = useState({
-    name: '', bio: '', avatar: '', categories: [], location: '', artworks: []
-  });
-  const [newArtworkForm, setNewArtworkForm] = useState({ title: '', image: '', category: '', price: '', description: '' });
-
-  // Sub-Admin Form
   const [showCreateSubAdmin, setShowCreateSubAdmin] = useState(false);
-  const [subAdminForm, setSubAdminForm] = useState({ name: '', email: '', password: '', role: 'lead_chitrakar', location: '' });
 
+  const [contemporaryForm, setContemporaryForm] = useState({
+    name: '',
+    bio: '',
+    avatar: '',
+    categories: [],
+    location: '',
+    artworks: [],
+  });
+
+  const [newArtworkForm, setNewArtworkForm] = useState({
+    title: '',
+    image: '',
+    category: '',
+    price: '',
+    description: '',
+  });
+
+  const [subAdminForm, setSubAdminForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'lead_chitrakar',
+    location: '',
+  });
+
+  // ✅ CORRECT ADMIN GUARD
   useEffect(() => {
-    if (!isAdmin) {
-      navigate('/login');
+    if (isLoading) return;
+
+    if (!user || !isAdmin) {
+      navigate('/login', { replace: true });
       return;
     }
+
     fetchData();
-  }, [isAdmin, navigate]);
+  }, [user, isAdmin, isLoading, navigate]);
 
   const fetchData = async () => {
     try {
-      const [dashboard, artists, artworks, exhibitions, users, approved, featured, subadmins] = await Promise.all([
+      setLoading(true);
+
+      const [
+        dashboard,
+        artists,
+        artworks,
+        exhibitions,
+        users,
+        approved,
+        featured,
+        subadmins,
+      ] = await Promise.all([
         adminAPI.getDashboard(),
         adminAPI.getPendingArtists(),
         adminAPI.getPendingArtworks(),
@@ -892,6 +927,7 @@ function AdminDashboard() {
         adminAPI.getFeaturedArtists().catch(() => ({ contemporary: [], registered: [] })),
         adminAPI.getSubAdmins().catch(() => ({ sub_admins: [] })),
       ]);
+
       setDashboardData(dashboard);
       setPendingArtists(artists.artists || []);
       setPendingArtworks(artworks.artworks || []);
@@ -900,151 +936,107 @@ function AdminDashboard() {
       setApprovedArtists(approved.artists || []);
       setFeaturedArtists(featured);
       setSubAdmins(subadmins.sub_admins || []);
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
+    } catch (err) {
+      console.error('Admin dashboard fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApproveArtist = async (artistId, approved) => {
-    try {
-      await adminAPI.approveArtist(artistId, approved);
-      fetchData();
-    } catch (error) {
-      console.error('Error approving artist:', error);
-    }
+  // === ACTION HANDLERS ===
+  const handleApproveArtist = async (id, approved) => {
+    await adminAPI.approveArtist(id, approved);
+    fetchData();
   };
 
-  const handleApproveArtwork = async (artworkId, approved) => {
-    try {
-      await adminAPI.approveArtwork(artworkId, approved);
-      fetchData();
-    } catch (error) {
-      console.error('Error approving artwork:', error);
-    }
+  const handleApproveArtwork = async (id, approved) => {
+    await adminAPI.approveArtwork(id, approved);
+    fetchData();
   };
 
-  const handleApproveExhibition = async (exhibitionId, approved) => {
-    try {
-      await adminAPI.approveExhibition(exhibitionId, approved);
-      fetchData();
-    } catch (error) {
-      console.error('Error approving exhibition:', error);
-    }
+  const handleApproveExhibition = async (id, approved) => {
+    await adminAPI.approveExhibition(id, approved);
+    fetchData();
   };
 
-  const handleToggleUserStatus = async (userId) => {
-    try {
-      await adminAPI.toggleUserStatus(userId);
-      fetchData();
-    } catch (error) {
-      console.error('Error toggling user status:', error);
-    }
+  const handleToggleUserStatus = async (id) => {
+    await adminAPI.toggleUserStatus(id);
+    fetchData();
   };
 
-  const handleFeatureRegisteredArtist = async (artistId, featured) => {
-    try {
-      await adminAPI.featureRegisteredArtist(artistId, featured);
-      fetchData();
-    } catch (error) {
-      console.error('Error featuring artist:', error);
-    }
+  const handleFeatureRegisteredArtist = async (id, featured) => {
+    await adminAPI.featureRegisteredArtist(id, featured);
+    fetchData();
+  };
+
+  // === CONTEMPORARY ARTIST ===
+  const handleCategoryToggle = (category) => {
+    setContemporaryForm((prev) => ({
+      ...prev,
+      categories: prev.categories.includes(category)
+        ? prev.categories.filter((c) => c !== category)
+        : [...prev.categories, category],
+    }));
   };
 
   const handleAddArtworkToContemporary = () => {
-    if (contemporaryForm.artworks.length >= 10) {
-      alert('Maximum 10 artworks allowed');
-      return;
-    }
     if (!newArtworkForm.title || !newArtworkForm.image) return;
-    
-    setContemporaryForm(prev => ({
+    if (contemporaryForm.artworks.length >= 10) return;
+
+    setContemporaryForm((prev) => ({
       ...prev,
-      artworks: [...prev.artworks, { ...newArtworkForm, price: parseFloat(newArtworkForm.price) || 0 }]
+      artworks: [
+        ...prev.artworks,
+        { ...newArtworkForm, price: Number(newArtworkForm.price) || 0 },
+      ],
     }));
+
     setNewArtworkForm({ title: '', image: '', category: '', price: '', description: '' });
   };
 
   const handleRemoveArtworkFromContemporary = (index) => {
-    setContemporaryForm(prev => ({
+    setContemporaryForm((prev) => ({
       ...prev,
-      artworks: prev.artworks.filter((_, i) => i !== index)
+      artworks: prev.artworks.filter((_, i) => i !== index),
     }));
   };
 
   const handleCreateContemporaryArtist = async () => {
-    try {
-      if (!contemporaryForm.name || !contemporaryForm.bio || !contemporaryForm.avatar) {
-        alert('Please fill in name, bio, and picture URL');
-        return;
-      }
-      await adminAPI.createFeaturedArtist(contemporaryForm);
-      setShowAddContemporary(false);
-      setContemporaryForm({ name: '', bio: '', avatar: '', categories: [], location: '', artworks: [] });
-      fetchData();
-    } catch (error) {
-      console.error('Error creating featured artist:', error);
-      alert(error.message);
-    }
+    if (!contemporaryForm.name || !contemporaryForm.bio || !contemporaryForm.avatar) return;
+
+    await adminAPI.createFeaturedArtist(contemporaryForm);
+    setShowAddContemporary(false);
+    setContemporaryForm({ name: '', bio: '', avatar: '', categories: [], location: '', artworks: [] });
+    fetchData();
   };
 
-  const handleDeleteContemporaryArtist = async (artistId) => {
-    if (!window.confirm('Are you sure you want to delete this featured artist?')) return;
-    try {
-      await adminAPI.deleteFeaturedArtist(artistId);
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting artist:', error);
-    }
+  const handleDeleteContemporaryArtist = async (id) => {
+    if (!window.confirm('Delete this featured artist?')) return;
+    await adminAPI.deleteFeaturedArtist(id);
+    fetchData();
   };
 
-  const handleCategoryToggle = (category) => {
-    setContemporaryForm(prev => ({
-      ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
-        : [...prev.categories, category]
-    }));
-  };
-
+  // === SUB ADMIN ===
   const handleCreateSubAdmin = async () => {
-    try {
-      if (!subAdminForm.name || !subAdminForm.email || !subAdminForm.password) {
-        alert('Please fill in all required fields');
-        return;
-      }
-      await adminAPI.createSubAdmin(subAdminForm);
-      setShowCreateSubAdmin(false);
-      setSubAdminForm({ name: '', email: '', password: '', role: 'lead_chitrakar', location: '' });
-      fetchData();
-      alert('Sub-admin created successfully!');
-    } catch (error) {
-      console.error('Error creating sub-admin:', error);
-      alert(error.message || 'Failed to create sub-admin');
-    }
+    if (!subAdminForm.name || !subAdminForm.email || !subAdminForm.password) return;
+
+    await adminAPI.createSubAdmin(subAdminForm);
+    setShowCreateSubAdmin(false);
+    setSubAdminForm({ name: '', email: '', password: '', role: 'lead_chitrakar', location: '' });
+    fetchData();
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">Loading…</div>;
   }
-
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'artists', label: `Pending (${pendingArtists.length})`, icon: '🎨' },
-    { id: 'artworks', label: `Artworks (${pendingArtworks.length})`, icon: '🖼️' },
-    { id: 'exhibitions', label: `Exhibitions (${pendingExhibitions.length})`, icon: '🏛️' },
-    { id: 'feature', label: 'Feature Artists', icon: '⭐' },
-    { id: 'users', label: 'All Users', icon: '👥' },
-    { id: 'subadmins', label: 'Sub-Admins', icon: '👤' },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">Welcome, {user?.name}. Manage artists, artworks, and exhibitions.</p>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+        <p className="text-gray-600 mb-8">
+          Welcome, {user?.full_name || user?.email}
+        </p>
         </div>
 
         {/* Tabs */}
