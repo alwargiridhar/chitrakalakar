@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { publicAPI, adminAPI, artistAPI, authAPI } from './services/api';
 import { BRAND_NAME, BRAND_TAGLINE, ART_CATEGORIES, NAVIGATION_LINKS } from './utils/branding';
 import ArtClassesPage from './pages/ArtClassesPage';
