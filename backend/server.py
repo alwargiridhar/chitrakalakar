@@ -142,6 +142,69 @@ async def get_featured_artists():
         "registered": registered.data or []
     }
 
+@app.get("/api/public/artists")
+async def get_public_artists():
+    """Get all approved artists (without contact info for public view)"""
+    supabase = get_supabase_client()
+    
+    # Get all approved and active artists
+    artists = supabase.table('users').select(
+        'id, name, bio, avatar, categories, location, created_at'
+    ).eq('role', 'artist').eq('is_approved', True).eq('is_active', True).execute()
+    
+    return {"artists": artists.data or []}
+
+@app.get("/api/public/artist/{artist_id}")
+async def get_public_artist_detail(artist_id: str):
+    """Get artist detail with artworks (without contact info)"""
+    supabase = get_supabase_client()
+    
+    # Get artist without contact info
+    artist = supabase.table('users').select(
+        'id, name, bio, avatar, categories, location, created_at'
+    ).eq('id', artist_id).eq('role', 'artist').eq('is_approved', True).single().execute()
+    
+    if not artist.data:
+        raise HTTPException(status_code=404, detail="Artist not found")
+    
+    # Get artist's approved artworks
+    artworks = supabase.table('artworks').select('*').eq('artist_id', artist_id).eq('is_approved', True).order('created_at', desc=True).execute()
+    
+    return {
+        "artist": artist.data,
+        "artworks": artworks.data or []
+    }
+
+@app.get("/api/public/paintings")
+async def get_public_paintings():
+    """Get all approved artworks for marketplace (without artist contact info)"""
+    supabase = get_supabase_client()
+    
+    # Get all approved artworks with artist name (but no contact info)
+    artworks = supabase.table('artworks').select(
+        '*, users!inner(id, name, avatar, location)'
+    ).eq('is_approved', True).order('created_at', desc=True).execute()
+    
+    return {"paintings": artworks.data or []}
+
+@app.get("/api/public/painting/{painting_id}")
+async def get_painting_detail(painting_id: str):
+    """Get painting detail with artist info (without contact)"""
+    supabase = get_supabase_client()
+    
+    painting = supabase.table('artworks').select(
+        '*, users!inner(id, name, avatar, location, bio, categories)'
+    ).eq('id', painting_id).eq('is_approved', True).single().execute()
+    
+    if not painting.data:
+        raise HTTPException(status_code=404, detail="Painting not found")
+    
+    # Increment views
+    current_views = painting.data.get('views', 0)
+    supabase.table('artworks').update({'views': current_views + 1}).eq('id', painting_id).execute()
+    
+    return {"painting": painting.data}
+
 @app.get("/api/public/featured-artist/{artist_id}")
 async def get_featured_artist_detail(artist_id: str):
     """Get detailed info about a featured artist"""
