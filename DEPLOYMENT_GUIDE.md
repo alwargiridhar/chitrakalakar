@@ -270,4 +270,4 @@ git push origin main
 For any issues, check:
 - Backend logs: `tail -f /var/log/supervisor/backend.err.log`
 - Frontend logs: `tail -f /var/log/supervisor/frontend.err.log`
-- API docs: https://file-breakdown.preview.emergentagent.com/api/docs
+- API docs: https://code-preview-70.preview.emergentagent.com/api/docs
