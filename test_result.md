@@ -302,3 +302,32 @@ agent_communication:
         - Basic navigation and UI structure is working correctly after code reorganization
         - External URL access issue needs to be resolved for public testing
         - Ready for advanced feature testing (Art Classes, Exhibitions, Sub-Admin features)
+    
+    - agent: "testing"
+      message: |
+        **BACKEND API TESTING COMPLETED - CRITICAL CONFIGURATION ISSUE FOUND ❌**
+        
+        **API Endpoints Tested:**
+        ✅ GET /api/health - Working correctly (returns {"status": "healthy", "database": "supabase"})
+        ✅ GET /api/user/my-enquiries - Correctly requires authentication (403 Forbidden without token)
+        ❌ GET /api/public/paintings - 500 Internal Server Error
+        ❌ GET /api/public/artists - 500 Internal Server Error  
+        ❌ GET /api/public/artist/{id} - 500 Internal Server Error
+        ❌ GET /api/public/painting/{id} - 500 Internal Server Error
+        
+        **ROOT CAUSE IDENTIFIED:**
+        - Missing SUPABASE_SERVICE_KEY and SUPABASE_JWT_SECRET in backend/.env
+        - Backend logs show: "Supabase client not initialized. Set SUPABASE_SERVICE_KEY environment variable."
+        - All endpoints requiring database access fail with 500 errors
+        - Only health check and auth validation work (no database dependency)
+        
+        **CRITICAL ISSUE:**
+        The entire backend is non-functional due to missing Supabase configuration. This affects:
+        - All public API endpoints for paintings, artists, exhibitions
+        - All user authentication and data operations
+        - Art class enquiry system
+        - Exhibition management
+        - Sub-admin functionality
+        
+        **IMMEDIATE ACTION REQUIRED:**
+        Main agent must configure Supabase service key and JWT secret to restore backend functionality.
