@@ -19,17 +19,34 @@ export const BUCKETS = {
 };
 
 /**
- * Upload file to Supabase Storage
+ * Upload file to Supabase Storage with proper naming convention
  * @param {File} file - File to upload
  * @param {string} bucket - Bucket name (avatars, artworks, exhibitions)
  * @param {string} folder - Optional folder path within bucket
+ * @param {Object} metadata - Optional metadata for naming (artistName, paintingName, index)
  * @returns {Promise<string>} Public URL of uploaded file
  */
-export const uploadFile = async (file, bucket, folder = '') => {
+export const uploadFile = async (file, bucket, folder = '', metadata = {}) => {
   try {
-    // Generate unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    let fileName;
+    
+    // Use custom naming convention if metadata provided
+    if (metadata.artistName && metadata.paintingName) {
+      // Clean names - remove special characters and spaces
+      const cleanArtistName = metadata.artistName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const cleanPaintingName = metadata.paintingName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const index = metadata.index || 1;
+      fileName = `${cleanArtistName}_${cleanPaintingName}_pic${index}.${fileExt}`;
+    } else if (metadata.artistName) {
+      // For avatar uploads
+      const cleanArtistName = metadata.artistName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      fileName = `${cleanArtistName}_avatar_${Date.now()}.${fileExt}`;
+    } else {
+      // Fallback to timestamp-based naming
+      fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    }
+    
     const filePath = folder ? `${folder}/${fileName}` : fileName;
 
     // Upload file
@@ -37,7 +54,7 @@ export const uploadFile = async (file, bucket, folder = '') => {
       .from(bucket)
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: true // Allow overwriting if file exists
       });
 
     if (error) throw error;
