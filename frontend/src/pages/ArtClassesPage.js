@@ -191,11 +191,10 @@ function ArtClassesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Budget Per Session *
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: '₹250-350', value: '250-350' },
-                      { label: '₹350-500', value: '350-500' },
-                      { label: '₹500-1000', value: '500-1000' }
+                      { label: '₹350-500', value: '350-500' }
                     ].map(range => (
                       <button
                         key={range.value}
