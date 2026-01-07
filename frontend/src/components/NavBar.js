@@ -177,7 +177,8 @@ function NavBar() {
                       isAdmin ? '/admin' : 
                       user?.role === 'lead_chitrakar' ? '/lead-chitrakar' :
                       user?.role === 'kalakar' ? '/kalakar' :
-                      '/dashboard'
+                      user?.role === 'artist' ? '/dashboard' :
+                      '/user-dashboard'
                     } 
                     onClick={() => setIsOpen(false)} 
                     className="block w-full px-4 py-2 bg-orange-500 text-white text-center rounded-lg"
@@ -185,7 +186,8 @@ function NavBar() {
                     {isAdmin ? 'Admin Panel' : 
                      user?.role === 'lead_chitrakar' ? 'Lead Chitrakar' :
                      user?.role === 'kalakar' ? 'Kalakar Panel' :
-                     'Dashboard'}
+                     user?.role === 'artist' ? 'Artist Dashboard' :
+                     'My Dashboard'}
                   </Link>
                   <button onClick={handleLogout} className="block w-full px-4 py-2 border border-red-300 text-red-600 rounded-lg">
                     Logout
