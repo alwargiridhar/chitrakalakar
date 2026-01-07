@@ -129,15 +129,18 @@ backend:
 
   - task: "Art Class Enquiry API"
     implemented: true
-    working: true
+    working: false
     file: "backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "Created endpoints for art class enquiries with location matching and contact reveal limits"
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL: All Supabase-dependent endpoints failing with 500 Internal Server Error. Missing SUPABASE_SERVICE_KEY and SUPABASE_JWT_SECRET in backend/.env. Backend logs show: 'Supabase client not initialized. Set SUPABASE_SERVICE_KEY environment variable.' Health check works but all data endpoints fail."
 
   - task: "Exhibition Pricing Tiers"
     implemented: true
