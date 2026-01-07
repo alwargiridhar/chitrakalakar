@@ -159,15 +159,18 @@ backend:
 
   - task: "Sub-Admin Management"
     implemented: true
-    working: true
+    working: false
     file: "backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "Added Lead Chitrakar and Kalakar roles with specific permissions"
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL: Cannot test sub-admin endpoints due to missing Supabase configuration. All database-dependent endpoints failing."
 
 frontend:
   - task: "Supabase Client Setup"
