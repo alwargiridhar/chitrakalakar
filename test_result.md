@@ -241,12 +241,16 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Supabase Configuration Fix"
     - "Art Class Enquiry System"
     - "Exhibition Pricing Tiers"
     - "Sub-Admin Management"
-  stuck_tasks: []
+  stuck_tasks:
+    - "Art Class Enquiry API"
+    - "Exhibition Pricing Tiers" 
+    - "Sub-Admin Management"
   test_all: false
-  test_priority: "high_first"
+  test_priority: "stuck_first"
 
 agent_communication:
     - agent: "main"
