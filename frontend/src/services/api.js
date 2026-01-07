@@ -43,6 +43,10 @@ export const authAPI = {
 export const publicAPI = {
   getStats: () => apiCall('/public/stats'),
   getFeaturedArtists: () => apiCall('/public/featured-artists'),
+  getArtists: () => apiCall('/public/artists'),
+  getArtistDetail: (artistId) => apiCall(`/public/artist/${artistId}`),
+  getPaintings: () => apiCall('/public/paintings'),
+  getPaintingDetail: (paintingId) => apiCall(`/public/painting/${paintingId}`),
   getExhibitions: () => apiCall('/public/exhibitions'),
   getActiveExhibitions: () => apiCall('/public/exhibitions/active'),
   getArchivedExhibitions: () => apiCall('/public/exhibitions/archived'),
@@ -58,6 +62,12 @@ export const publicAPI = {
     method: 'POST',
     body: JSON.stringify({ enquiry_id: enquiryId, artist_id: artistId }),
   }),
+};
+
+// User APIs
+export const userAPI = {
+  getMyEnquiries: () => apiCall('/user/my-enquiries'),
+  getProfile: () => apiCall('/user/profile'),
 };
 
 // Admin APIs
