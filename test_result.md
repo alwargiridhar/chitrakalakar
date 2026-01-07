@@ -144,15 +144,18 @@ backend:
 
   - task: "Exhibition Pricing Tiers"
     implemented: true
-    working: true
+    working: false
     file: "backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "Updated exhibition creation with Kalakanksh, Kalahruday, KalaDeeksh pricing"
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL: Cannot test exhibition endpoints due to missing Supabase configuration. All endpoints requiring database access return 500 Internal Server Error."
 
   - task: "Sub-Admin Management"
     implemented: true
