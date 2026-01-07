@@ -274,8 +274,7 @@ async def create_art_class_enquiry(enquiry_data: ArtClassEnquiryCreate, user: di
     if enquiry_data.class_type == "offline":
         budget_ranges = {
             "250-350": (250, 350),
-            "350-500": (350, 500),
-            "500-1000": (500, 1000)
+            "350-500": (350, 500)
         }
         if enquiry_data.budget_range in budget_ranges:
             min_rate, max_rate = budget_ranges[enquiry_data.budget_range]
