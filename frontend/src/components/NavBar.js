@@ -29,6 +29,7 @@ function NavBar() {
 
   const navLinks = [
     { label: 'About', href: '/about' },
+    { label: 'Paintings', href: '/paintings' },
     { label: 'Artists', href: '/artists' },
   ];
 
