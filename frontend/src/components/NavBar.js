@@ -121,9 +121,13 @@ function NavBar() {
                   <Link to="/kalakar" className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
                     Kalakar Panel
                   </Link>
-                ) : (
+                ) : user?.role === 'artist' ? (
                   <Link to="/dashboard" className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600">
-                    Dashboard
+                    Artist Dashboard
+                  </Link>
+                ) : (
+                  <Link to="/user-dashboard" className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600">
+                    My Dashboard
                   </Link>
                 )}
                 <button onClick={handleLogout} className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50">
