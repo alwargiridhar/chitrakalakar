@@ -185,33 +185,38 @@ function ArtClassesPage() {
                 </div>
               )}
 
-              {/* Budget Range (for offline only) */}
-              {formData.class_type === 'offline' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Budget Per Session *
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { label: '₹250-350', value: '250-350' },
-                      { label: '₹350-500', value: '350-500' }
-                    ].map(range => (
-                      <button
-                        key={range.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, budget_range: range.value })}
-                        className={`px-4 py-2 rounded-lg font-medium ${
-                          formData.budget_range === range.value
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {range.label}
-                      </button>
-                    ))}
-                  </div>
+              {/* Budget Range - Different options for online vs offline */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Budget Per Session *
+                </label>
+                <div className={`grid gap-3 ${formData.class_type === 'offline' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  {(formData.class_type === 'online' 
+                    ? [
+                        { label: '₹250-350', value: '250-350' },
+                        { label: '₹350-500', value: '350-500' }
+                      ]
+                    : [
+                        { label: '₹250-350', value: '250-350' },
+                        { label: '₹350-500', value: '350-500' },
+                        { label: '₹500-1000', value: '500-1000' }
+                      ]
+                  ).map(range => (
+                    <button
+                      key={range.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, budget_range: range.value })}
+                      className={`px-4 py-2 rounded-lg font-medium ${
+                        formData.budget_range === range.value
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {/* Duration */}
               <div>
