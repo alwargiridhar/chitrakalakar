@@ -12,8 +12,12 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ArtistDashboard from './pages/ArtistDashboard';
+import UserDashboard from './pages/UserDashboard';
 import AboutPage from './pages/AboutPage';
 import ArtistsPage from './pages/ArtistsPage';
+import ArtistDetailPage from './pages/ArtistDetailPage';
+import PaintingsPage from './pages/PaintingsPage';
+import PaintingDetailPage from './pages/PaintingDetailPage';
 import ExhibitionsPage from './pages/ExhibitionsPage';
 import ArchivedExhibitionsPage from './pages/ArchivedExhibitionsPage';
 import ArtClassesPage from './pages/ArtClassesPage';
@@ -37,6 +41,9 @@ function App() {
           <Route path="/signup" element={<Layout><SignupPage /></Layout>} />
           <Route path="/about" element={<Layout><AboutPage /></Layout>} />
           <Route path="/artists" element={<Layout><ArtistsPage /></Layout>} />
+          <Route path="/artist/:id" element={<Layout><ArtistDetailPage /></Layout>} />
+          <Route path="/paintings" element={<Layout><PaintingsPage /></Layout>} />
+          <Route path="/painting/:id" element={<Layout><PaintingDetailPage /></Layout>} />
           <Route path="/exhibitions" element={<Layout><ExhibitionsPage /></Layout>} />
           <Route path="/exhibitions/archived" element={<Layout><ArchivedExhibitionsPage /></Layout>} />
           <Route path="/art-classes" element={<Layout><ArtClassesPage /></Layout>} />
@@ -46,6 +53,7 @@ function App() {
           <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
           <Route path="/admin" element={<><NavBar /><AdminDashboard /></>} />
           <Route path="/dashboard" element={<><NavBar /><ArtistDashboard /></>} />
+          <Route path="/user-dashboard" element={<><NavBar /><UserDashboard /></>} />
           <Route path="/lead-chitrakar" element={<><NavBar /><LeadChitrakarDashboard /></>} />
           <Route path="/kalakar" element={<><NavBar /><KalakarDashboard /></>} />
           <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
