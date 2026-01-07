@@ -270,11 +270,22 @@ async def create_art_class_enquiry(enquiry_data: ArtClassEnquiryCreate, user: di
         if enquiry_data.user_location:
             query = query.ilike('location', f'%{enquiry_data.user_location}%')
     
-    # Filter by budget range for offline classes
-    if enquiry_data.class_type == "offline":
+    # Filter by budget range - different options for online vs offline
+    if enquiry_data.class_type == "online":
+        # Online classes: only 250-350 and 350-500 (no 500-1000)
         budget_ranges = {
             "250-350": (250, 350),
             "350-500": (350, 500)
+        }
+        if enquiry_data.budget_range in budget_ranges:
+            min_rate, max_rate = budget_ranges[enquiry_data.budget_range]
+            query = query.gte('teaching_rate', min_rate).lte('teaching_rate', max_rate)
+    elif enquiry_data.class_type == "offline":
+        # Offline/In-person classes: all three budget ranges
+        budget_ranges = {
+            "250-350": (250, 350),
+            "350-500": (350, 500),
+            "500-1000": (500, 1000)
         }
         if enquiry_data.budget_range in budget_ranges:
             min_rate, max_rate = budget_ranges[enquiry_data.budget_range]
