@@ -393,6 +393,29 @@ async def reveal_artist_contact(request: RevealContactRequest, user: dict = Depe
         "contacts_remaining": 2 - len(contacts_revealed) + 1
     }
 
+# ============ USER ROUTES ============
+
+@app.get("/api/user/my-enquiries")
+async def get_my_art_class_enquiries(user: dict = Depends(require_user)):
+    """Get user's art class enquiries"""
+    supabase = get_supabase_client()
+    
+    enquiries = supabase.table('art_class_enquiries').select('*').eq('user_id', user['id']).order('created_at', desc=True).execute()
+    
+    return {"enquiries": enquiries.data or []}
+
+@app.get("/api/user/profile")
+async def get_user_profile(user: dict = Depends(require_user)):
+    """Get current user profile"""
+    supabase = get_supabase_client()
+    
+    profile = supabase.table('users').select('*').eq('id', user['id']).single().execute()
+    
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    return {"profile": profile.data}
+
 # ============ ADMIN ROUTES ============
 
 @app.get("/api/admin/dashboard")
